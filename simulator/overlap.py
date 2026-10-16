@@ -80,7 +80,7 @@ def _legit_traveler(
         country = rng.choice(C.INTERNATIONAL_COUNTRIES)
         dur = rng.randint(60, 400)
         activity.voice_calls.append({
-            "call_id": f"CALL{int(ts.timestamp() * 1000)}{rng.randint(1000, 9999)}",
+            "call_id": f"CALL{int(ts.timestamp() * 1000)}{rng.randint(10**9, 10**10 - 1)}",
             "subscriber_id": subscriber.subscriber_id,
             "destination_number": f"{country.calling_code}{rng.randint(1_000_000, 99_999_999)}",
             "duration_sec": dur,
@@ -106,7 +106,7 @@ def _legit_streamer(
             second=0, microsecond=0, tzinfo=timezone.utc,
         )
         activity.data_sessions.append({
-            "session_id": f"SESS{int(ts.timestamp() * 1000)}{rng.randint(1000, 9999)}",
+            "session_id": f"SESS{int(ts.timestamp() * 1000)}{rng.randint(10**9, 10**10 - 1)}",
             "subscriber_id": subscriber.subscriber_id,
             "url_domain": "streaming.example",
             "bytes_used": int(np_rng.integers(500_000_000, 3_000_000_000)),  # 0.5–3 GB
@@ -132,7 +132,7 @@ def _legit_call_center(
             second=0, microsecond=0, tzinfo=timezone.utc,
         )
         activity.voice_calls.append({
-            "call_id": f"CALL{int(ts.timestamp() * 1000)}{rng.randint(1000, 9999)}",
+            "call_id": f"CALL{int(ts.timestamp() * 1000)}{rng.randint(10**9, 10**10 - 1)}",
             "subscriber_id": subscriber.subscriber_id,
             "destination_number": f"+216{rng.randint(20_000_000, 99_999_999)}",
             "duration_sec": rng.randint(30, 180),

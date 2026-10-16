@@ -250,3 +250,86 @@ def _check_range_revenue(row: dict[str, Any]) -> ValidationResult:
         )
 
     return ValidationResult(status="passed", row=row)
+
+    # ─── Check 4 — Referential Integrity ────────────────────────────────────────
+
+def check_referential(row: dict[str, Any], context: CheckContext) -> ValidationResult:
+    """
+    Cross-table referential checks. Verifies that foreign keys in this row
+    exist in the loaded reference tables.
+
+    Current checks:
+      - purchases.bundle_id must exist in bundle_catalog
+      - any row with subscriber_id must reference a known subscriber
+
+    Behavior when reference data is empty:
+      - If the reference set is empty, the corresponding check is skipped.
+      - This avoids a bad run if someone forgets to load reference data.
+
+    Behavior when the field is missing:
+      - Schema check already failed the row; skip here.
+    """
+    source = context.source
+
+    # 1. Bundle catalog check — only for purchases
+    if source == "purchases":
+        result = _check_referential_purchases(row, context)
+        if not result.passed:
+            return result
+
+    # 2. Subscriber check — applies to any source with subscriber_id
+    result = _check_subscriber_exists(row, context)
+    if not result.passed:
+        return result
+
+    return ValidationResult(status="passed", row=row)
+
+
+def _check_subscriber_exists(
+    row: dict[str, Any], context: CheckContext
+) -> ValidationResult:
+    """
+    Verify that row['subscriber_id'] exists in the loaded subscriber set.
+    Skipped if the set is empty (fail-safe).
+    """
+    subscriber_id = row.get("subscriber_id")
+    if subscriber_id is None:
+        # Schema check will fail this row — skip here
+        return ValidationResult(status="passed", row=row)
+
+    if not context.known_subscriber_ids:
+        # Subscriber set not loaded — skip check rather than reject everything
+        return ValidationResult(status="passed", row=row)
+
+    if str(subscriber_id) not in context.known_subscriber_ids:
+        return ValidationResult(
+            status="failed",
+            reason=f"unknown subscriber_id: {subscriber_id}",
+            check_name="referential",
+            row=row,
+        )
+
+    return ValidationResult(status="passed", row=row)
+
+def _check_referential_purchases(
+    row: dict[str, Any], context: CheckContext
+) -> ValidationResult:
+    """Purchases: bundle_id must exist in bundle_catalog."""
+    bundle_id = row.get("bundle_id")
+    if bundle_id is None:
+        # Schema check will fail this row — skip here
+        return ValidationResult(status="passed", row=row)
+
+    if not context.known_bundle_ids:
+        # Catalog not loaded — skip check rather than reject everything
+        return ValidationResult(status="passed", row=row)
+
+    if str(bundle_id) not in context.known_bundle_ids:
+        return ValidationResult(
+            status="failed",
+            reason=f"unknown bundle_id: {bundle_id}",
+            check_name="referential",
+            row=row,
+        )
+
+    return ValidationResult(status="passed", row=row)

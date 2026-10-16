@@ -16,10 +16,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from quality_gate.io import load_all_bundle_ids, load_all_subscriber_ids
 from quality_gate.metrics import emit_metrics_and_alert
 from quality_gate.models import GateReport
 from quality_gate.runner import SOURCE_PATHS, validate_source
-
 
 DEFAULT_SOURCES: list[str] = ["voice", "data", "revenue", "activation", "purchases"]
 
@@ -30,6 +30,7 @@ def run_gate(
     s3,
     sns,
     cfg: dict,
+    dynamodb=None,
     sources: list[str] | None = None,
     verbose: bool = True,
 ) -> GateReport:
@@ -62,6 +63,25 @@ def run_gate(
         print(f"  Bucket : {bucket}")
         print(f"  Threshold: {quarantine_threshold:.2%}")
         print("═" * 65)
+    reference = {"bundle_ids": set(), "subscriber_ids": set()}
+    if dynamodb is not None:
+        try:
+            reference["bundle_ids"] = load_all_bundle_ids(
+                dynamodb, cfg["paths"]["dynamodb_bundles"]
+            )
+            reference["subscriber_ids"] = load_all_subscriber_ids(
+                dynamodb, cfg["paths"]["dynamodb_subscribers"]
+            )
+            if verbose:
+                print(f"  Loaded {len(reference['bundle_ids'])} bundle_ids, "
+                      f"{len(reference['subscriber_ids'])} subscriber_ids from reference tables")
+        except Exception as exc:
+            if verbose:
+                print(f"  ⚠️  Failed to load reference data: {type(exc).__name__}: {exc}")
+                print(f"      Referential checks will be skipped.")
+    else:
+        if verbose:
+            print(f"  ⚠️  No DynamoDB client — referential checks disabled")
 
     # Filter out unknown sources with a warning
     valid_sources = [s for s in sources if s in SOURCE_PATHS]
@@ -77,6 +97,7 @@ def run_gate(
                 bucket=bucket,
                 source=src,
                 run_id=run_id,
+                reference=reference,
                 verbose=verbose,
             )
             report.add_source_report(src_report)

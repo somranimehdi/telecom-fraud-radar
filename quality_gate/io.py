@@ -205,3 +205,54 @@ def write_metrics_to_s3(
         ContentType="application/json",
     )
     return key
+
+
+# ─── Reference Data Loaders ─────────────────────────────────────────────────
+
+def load_all_bundle_ids(dynamodb, table_name: str) -> set[str]:
+    """
+    Scan the bundle_catalog table and return the set of all bundle_ids.
+    Used by referential integrity checks.
+
+    Scans in pages of 100 — sufficient for catalogs of thousands of items.
+    For very large tables, use a GSI-based approach or DynamoDB Streams.
+    """
+    bundle_ids: set[str] = set()
+    table = dynamodb.Table(table_name)
+    response = table.scan(ProjectionExpression="bundle_id")
+    while True:
+        for item in response.get("Items", []):
+            bid = item.get("bundle_id")
+            if bid:
+                bundle_ids.add(str(bid))
+        last_key = response.get("LastEvaluatedKey")
+        if not last_key:
+            break
+        response = table.scan(
+            ProjectionExpression="bundle_id",
+            ExclusiveStartKey=last_key,
+        )
+    return bundle_ids
+
+
+def load_all_subscriber_ids(dynamodb, table_name: str) -> set[str]:
+    """
+    Scan the subscriber_profile table and return the set of all subscriber_ids.
+    Used by subscriber-consistency checks.
+    """
+    subscriber_ids: set[str] = set()
+    table = dynamodb.Table(table_name)
+    response = table.scan(ProjectionExpression="subscriber_id")
+    while True:
+        for item in response.get("Items", []):
+            sid = item.get("subscriber_id")
+            if sid:
+                subscriber_ids.add(str(sid))
+        last_key = response.get("LastEvaluatedKey")
+        if not last_key:
+            break
+        response = table.scan(
+            ProjectionExpression="subscriber_id",
+            ExclusiveStartKey=last_key,
+        )
+    return subscriber_ids

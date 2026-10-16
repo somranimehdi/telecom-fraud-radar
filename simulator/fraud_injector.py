@@ -180,7 +180,7 @@ def _inject_sim_swap_takeover(
             high_risk = [c for c in C.INTERNATIONAL_COUNTRIES if c.irsf_risk >= 0.4]
             country = rng.choice(high_risk if rng.random() < 0.7 else C.INTERNATIONAL_COUNTRIES)
             activity.voice_calls.append({
-                "call_id": f"CALL{int(ts.timestamp() * 1000)}{rng.randint(1000, 9999)}",
+                "call_id": f"CALL{int(ts.timestamp() * 1000)}{rng.randint(10**9, 10**10 - 1)}",
                 "subscriber_id": subscriber.subscriber_id,
                 "destination_number": f"{country.calling_code}{rng.randint(1_000_000, 99_999_999)}",
                 "duration_sec": rng.randint(20, 120),
@@ -221,7 +221,7 @@ def _inject_irsf(
         country = rng.choice(high_risk)
         dur = rng.randint(dur_min, dur_max)
         activity.voice_calls.append({
-            "call_id": f"CALL{int(ts.timestamp() * 1000)}{rng.randint(1000, 9999)}",
+            "call_id": f"CALL{int(ts.timestamp() * 1000)}{rng.randint(10**9, 10**10 - 1)}",
             "subscriber_id": subscriber.subscriber_id,
             "destination_number": f"{country.calling_code}{rng.randint(1_000_000, 99_999_999)}",
             "duration_sec": dur,
@@ -269,7 +269,7 @@ def _inject_subscription_fraud(
         # Mostly international, moderate duration
         country = rng.choice(C.INTERNATIONAL_COUNTRIES)
         activity.voice_calls.append({
-            "call_id": f"CALL{int(ts.timestamp() * 1000)}{rng.randint(1000, 9999)}",
+            "call_id": f"CALL{int(ts.timestamp() * 1000)}{rng.randint(10**9, 10**10 - 1)}",
             "subscriber_id": subscriber.subscriber_id,
             "destination_number": f"{country.calling_code}{rng.randint(1_000_000, 99_999_999)}",
             "duration_sec": rng.randint(60, 400),
@@ -285,7 +285,7 @@ def _inject_subscription_fraud(
             second=0, microsecond=0, tzinfo=timezone.utc,
         )
         activity.data_sessions.append({
-            "session_id": f"SESS{int(ts.timestamp() * 1000)}{rng.randint(1000, 9999)}",
+            "session_id": f"SESS{int(ts.timestamp() * 1000)}{rng.randint(10**9, 10**10 - 1)}",
             "subscriber_id": subscriber.subscriber_id,
             "url_domain": "example.com",
             "bytes_used": int(np_rng.integers(1_000_000, 100_000_000)),
@@ -298,7 +298,7 @@ def _inject_subscription_fraud(
     if day_index == assignment.injection_day + 3:
         ts = activity.day.replace(hour=14, minute=22, tzinfo=timezone.utc)
         activity.bundle_purchases.append({
-            "purchase_id": f"PUR{int(ts.timestamp() * 1000)}{rng.randint(1000, 9999)}",
+            "purchase_id": f"PUR{int(ts.timestamp() * 1000)}{rng.randint(10**9, 10**10 - 1)}",
             "subscriber_id": subscriber.subscriber_id,
             "bundle_id": "BND_BUSINESS_50GB_30D",
             "channel": "online",
@@ -331,7 +331,7 @@ def _inject_bundle_abuse(
     for i in range(repeats):
         ts = purchase_time + timedelta(minutes=i * 3)
         activity.bundle_purchases.append({
-            "purchase_id": f"PUR{int(ts.timestamp() * 1000)}{rng.randint(1000, 9999)}",
+            "purchase_id": f"PUR{int(ts.timestamp() * 1000)}{rng.randint(10**9, 10**10 - 1)}",
             "subscriber_id": subscriber.subscriber_id,
             "bundle_id": bundle_id,
             "channel": "ussd",
@@ -351,7 +351,7 @@ def _inject_bundle_abuse(
                 minutes=int(np_rng.integers(0, 60)),
             )
             activity.data_sessions.append({
-                "session_id": f"SESS{int(ts.timestamp() * 1000)}{rng.randint(1000, 9999)}",
+                "session_id": f"SESS{int(ts.timestamp() * 1000)}{rng.randint(10**9, 10**10 - 1)}",
                 "subscriber_id": subscriber.subscriber_id,
                 "url_domain": "cdn.example",
                 "bytes_used": int(per_session_mb * 1024 * 1024),

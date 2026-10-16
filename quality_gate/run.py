@@ -70,11 +70,13 @@ def main() -> None:
     }
     s3 = boto3.client("s3", **client_kwargs)
     sns = boto3.client("sns", **client_kwargs)
+    dynamodb = boto3.resource("dynamodb", **client_kwargs)
 
     report = run_gate(
         s3=s3,
         sns=sns,
         cfg=cfg,
+        dynamodb=dynamodb,
         sources=sources,
         verbose=not args.quiet,
     )

@@ -188,7 +188,7 @@ def _make_voice_call(
     cost = Decimal(f"{base_per_sec * dur * cost_mult:.4f}")
 
     return {
-        "call_id": f"CALL{int(timestamp.timestamp() * 1000)}{rng.randint(1000, 9999)}",
+        "call_id": f"CALL{int(timestamp.timestamp() * 1000)}{rng.randint(10**9, 10**10 - 1)}",
         "subscriber_id": subscriber.subscriber_id,
         "destination_number": dest,
         "duration_sec": dur,
@@ -225,7 +225,7 @@ def _make_data_session(
     cost = Decimal(f"{base_per_mb * mb * cost_mult:.4f}")
 
     return {
-        "session_id": f"SESS{int(timestamp.timestamp() * 1000)}{rng.randint(1000, 9999)}",
+        "session_id": f"SESS{int(timestamp.timestamp() * 1000)}{rng.randint(10**9, 10**10 - 1)}",
         "subscriber_id": subscriber.subscriber_id,
         "url_domain": rng.choice(["example.com", "news.tn", "social.app", "video.site", None]),
         "bytes_used": bytes_used,
@@ -257,7 +257,7 @@ def _make_revenue_tx(
     amount = Decimal(f"{amt:.2f}")
 
     return {
-        "transaction_id": f"TXN{int(timestamp.timestamp() * 1000)}{rng.randint(1000, 9999)}",
+        "transaction_id": f"TXN{int(timestamp.timestamp() * 1000)}{rng.randint(10**9, 10**10 - 1)}",
         "subscriber_id": subscriber.subscriber_id,
         "payment_type": ptype,
         "amount": amount,
@@ -284,7 +284,7 @@ def _make_bundle_purchase(
                           weights=list(channel_weights.values()))[0]
 
     return {
-        "purchase_id": f"PUR{int(timestamp.timestamp() * 1000)}{rng.randint(1000, 9999)}",
+        "purchase_id": f"PUR{int(timestamp.timestamp() * 1000)}{rng.randint(10**9, 10**10 - 1)}",
         "subscriber_id": subscriber.subscriber_id,
         "bundle_id": bundle.bundle_id,
         "channel": channel,

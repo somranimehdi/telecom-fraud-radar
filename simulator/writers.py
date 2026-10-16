@@ -230,6 +230,64 @@ def write_bundles_to_dynamodb(
     return written
 
 
+def _write_partitioned_by_day(
+    s3,
+    bucket: str,
+    base_prefix: str,
+    rows: list[dict],
+    filename: str,
+    verbose: bool = True,
+) -> dict[str, str]:
+    """
+    Group rows by calendar day (UTC) and write one Parquet file per day.
+
+    Args:
+        s3:         boto3 S3 client
+        bucket:     S3 bucket name
+        base_prefix: e.g., "raw/usage/voice"
+        rows:       list of dicts, each must have a "timestamp" field
+        filename:   name of the Parquet file within each day's prefix
+        verbose:    if True, print per-day progress
+
+    Returns:
+        dict mapping ISO date string ("2026-09-15") to S3 key written.
+    """
+    if not rows:
+        return {}
+
+    # Group rows by calendar day
+    by_day: dict[str, list[dict]] = {}
+    for row in rows:
+        ts = row.get("timestamp")
+        if ts is None:
+            # No timestamp — skip. (Schema check would catch this in the gate.)
+            continue
+        # Normalize to a date string
+        if hasattr(ts, "date"):
+            day_key = ts.date().isoformat()
+        else:
+            # It's a string — take the first 10 chars (YYYY-MM-DD)
+            day_key = str(ts)[:10]
+        by_day.setdefault(day_key, []).append(row)
+
+    # Write one Parquet file per day
+    written: dict[str, str] = {}
+    for day_key in sorted(by_day.keys()):
+        day_rows = by_day[day_key]
+        # Build the datetime for the partition helper
+        day_dt = datetime.fromisoformat(day_key).replace(tzinfo=timezone.utc)
+
+        key = write_parquet_to_s3(
+            s3, bucket, base_prefix, day_rows, day_dt,
+            filename=filename, verbose=False,
+        )
+        written[day_key] = key
+
+        if verbose:
+            print(f"      → s3://{bucket}/{key} ({len(day_rows):,} rows)")
+
+    return written
+
 # ─── Orchestrator for All Writes ────────────────────────────────────────────
 
 def write_all(
@@ -273,27 +331,29 @@ def write_all(
             clients["kinesis"], purch_stream, collector.bundle_purchases, batch_size
         )
 
-    # 3. S3: voice CDRs
+    # 3. S3: voice CDRs — one Parquet file per day
     if collector.voice_cdrs and cfg["outputs"]["write_to_s3"]:
-        summary["s3_voice"] = write_parquet_to_s3(
+        summary["s3_voice"] = _write_partitioned_by_day(
             clients["s3"], bucket, "raw/usage/voice",
-            collector.voice_cdrs, start_dt, filename="voice.parquet",
+            collector.voice_cdrs, filename="voice.parquet",
+            verbose=False,
         )
 
-    # 4. S3: data CDRs
+    # 4. S3: data CDRs — one Parquet file per day
     if collector.data_cdrs and cfg["outputs"]["write_to_s3"]:
-        summary["s3_data"] = write_parquet_to_s3(
+        summary["s3_data"] = _write_partitioned_by_day(
             clients["s3"], bucket, "raw/usage/data",
-            collector.data_cdrs, start_dt, filename="data.parquet",
+            collector.data_cdrs, filename="data.parquet",
+            verbose=False,
         )
 
-    # 5. S3: revenue transactions
+    # 5. S3: revenue transactions — one Parquet file per day
     if collector.revenue_txs and cfg["outputs"]["write_to_s3"]:
-        summary["s3_revenue"] = write_parquet_to_s3(
+        summary["s3_revenue"] = _write_partitioned_by_day(
             clients["s3"], bucket, "raw/revenue/prepaid",
-            collector.revenue_txs, start_dt, filename="revenue.parquet",
+            collector.revenue_txs, filename="revenue.parquet",
+            verbose=False,
         )
-
     # 6. DynamoDB: subscriber profiles
     if cfg["outputs"]["write_to_dynamodb"]:
         summary["dynamodb_subscribers"] = write_subscribers_to_dynamodb(

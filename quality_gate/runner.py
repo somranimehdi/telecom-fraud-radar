@@ -34,6 +34,7 @@ from quality_gate.checks import (
     check_schema,
     check_duplicate,
     check_range,
+    check_referential,
 )
 from quality_gate.io import (
     read_source,
@@ -93,11 +94,10 @@ SOURCE_PATHS: dict[str, SourcePaths] = {
 
 def _validate_row(row: dict, context: CheckContext) -> tuple[str, str, str]:
     """
-    Run the three checks in sequence. Returns (status, reason, check_name).
+    Run the four checks in sequence. Returns (status, reason, check_name).
 
-    status: "passed" | "failed"
-    reason: "" on pass, non-empty on fail
-    check_name: "" on pass, name of failing check on fail
+    Order: schema → duplicate → range → referential.
+    Fail-fast at each step.
     """
     # 1. Schema
     r = check_schema(row, context)
@@ -114,9 +114,12 @@ def _validate_row(row: dict, context: CheckContext) -> tuple[str, str, str]:
     if not r.passed:
         return ("failed", r.reason, r.check_name)
 
+    # 4. Referential
+    r = check_referential(row, context)
+    if not r.passed:
+        return ("failed", r.reason, r.check_name)
+
     return ("passed", "", "")
-
-
 # ─── Per-Source Runner ──────────────────────────────────────────────────────
 
 def validate_source(
@@ -124,6 +127,7 @@ def validate_source(
     bucket: str,
     source: str,
     run_id: str,
+    reference: dict | None = None,
     timestamp: datetime | None = None,
     verbose: bool = True,
 ) -> SourceReport:
@@ -160,7 +164,12 @@ def validate_source(
         return report
 
     # 2. Validate each row
-    context = CheckContext(source=source)
+    reference = reference or {}
+    context = CheckContext(
+        source=source,
+        known_bundle_ids=reference.get("bundle_ids", set()),
+        known_subscriber_ids=reference.get("subscriber_ids", set()),
+    )
     passed_rows: list[dict] = []
     quarantine_rows: list[dict] = []
 
