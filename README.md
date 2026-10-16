@@ -197,6 +197,10 @@ make destroy
 
 The simulator (Week 2) generates data with **structured randomness**:
 
+The simulator runs **30 days × 10,000 subscribers** by default. This is
+deliberate:
+
+
 - Realistic distributions (log-normal amounts, Poisson event rates, weekday/
   hour seasonality).
 - **Overlapping** legit and fraud distributions — no single feature separates
@@ -208,6 +212,24 @@ The simulator (Week 2) generates data with **structured randomness**:
 This prevents the model from memorizing a single-feature shortcut. If any
 feature correlates > 0.7 with `is_fraud`, the simulator is considered too
 easy and is retuned.
+
+
+
+
+---
+
+
+### Why a simulator?
+
+The simulator is not a shortcut — it's the standard way to prototype a
+pipeline without access to real telco data. Real subscriber CDRs, KYC
+records, and revenue files are private and regulated. The simulator
+generates realistic distributions (log-normal, Poisson, seasonality) with
+deliberate overlap between legit and fraud, so the model has a
+non-trivial learning problem. The pipeline itself — ingestion, quality,
+transformations, scoring, alerting — is the deliverable and would run
+unchanged on real AWS with real data.
+
 
 ---
 

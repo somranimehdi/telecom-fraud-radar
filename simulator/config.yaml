@@ -1,0 +1,204 @@
+# ────────────────────────────────────────────────────────────────────────────
+# Telecom Fraud Radar — Simulator Configuration
+# ────────────────────────────────────────────────────────────────────────────
+# Every knob the simulator reads. Change once here, affects the whole run.
+#
+# Design principle: structured randomness with overlap.
+# Legit and fraud distributions MUST overlap. No single feature should
+# separate them. This prevents the model from learning a shortcut.
+# ────────────────────────────────────────────────────────────────────────────
+
+# ─── Reproducibility ────────────────────────────────────────────────────────
+seed: 42                        # Change this to get a different but reproducible run
+
+# ─── Population ─────────────────────────────────────────────────────────────
+population:
+  num_subscribers: 10000        # Medium: 10k subscribers
+  days: 30                      # 30 days captures hour/day seasonality.
+                                # Fraud patterns here operate on hour-to-day timescales.
+                                # Annual seasonality is out of scope for training —
+                                # see README; a separate 365d x 1k EDA run may be
+                                # added in Week 6 for a seasonality chart.
+  start_date: "2026-09-15"      # First day of simulation (local telco time)
+
+# ─── Fraud Injection ────────────────────────────────────────────────────────
+fraud:
+  # Overall rate: ~2% of subscribers will be fraud cases.
+  # 200 fraud subscribers out of 10k.
+  subscriber_fraud_rate: 0.02
+
+  # Split across the four archetypes (must sum to 1.0)
+  archetype_weights:
+    sim_swap_takeover: 0.35     # 70 subscribers
+    irsf: 0.30                  # 60 subscribers
+    subscription_fraud: 0.20    # 40 subscribers
+    bundle_abuse: 0.15          # 30 subscribers
+
+# ─── Overlap (the key to a real ML problem) ─────────────────────────────────
+overlap:
+  # Fraction of LEGIT subscribers who look fraud-like in some dimension.
+  # e.g. business travelers making many intl calls — legit, but IRSF-shaped.
+  legit_looking_fraud_rate: 0.10   # 1,000 legit users with fraud-like behavior
+
+  # Fraction of FRAUD subscribers who look legit — "low and slow" fraud.
+  # Forces the model to look at combinations, not single features.
+  fraud_looking_legit_rate: 0.20   # 40 fraud users hiding well
+
+# ─── Baseline Behavior Distributions ────────────────────────────────────────
+# These define "normal" for a legit subscriber. Fraud injects tails.
+baseline:
+  # Voice calls per subscriber per day (Poisson mean)
+  voice_calls_per_day_mean: 3.0
+
+  # Voice call duration in seconds (log-normal)
+  voice_duration_mu: 4.0        # exp(4) ≈ 55 sec median
+  voice_duration_sigma: 1.2
+
+  # Data sessions per subscriber per day
+  data_sessions_per_day_mean: 5.0
+
+  # Data bytes per session (log-normal, in bytes)
+  data_bytes_mu: 20.0           # exp(20) ≈ 485 MB median
+  data_bytes_sigma: 1.5
+
+  # Revenue transactions per subscriber per day
+  revenue_tx_per_day_mean: 0.4  # most days, no top-up
+
+  # Revenue amount in TND (log-normal)
+  revenue_amount_mu: 2.5        # exp(2.5) ≈ 12 TND median
+  revenue_amount_sigma: 1.0
+
+  # Bundle purchases per subscriber per day (very low)
+  bundle_purchases_per_day_mean: 0.05
+
+# ─── Seasonality ────────────────────────────────────────────────────────────
+# Hour-of-day and day-of-week multipliers. 1.0 = average activity.
+seasonality:
+  enabled: true
+
+  # Hour-of-day weights (24 values, 00:00 → 23:00).
+  # Low at night, high morning/evening.
+  hour_weights:
+    - 0.15  # 00
+    - 0.10  # 01
+    - 0.08  # 02
+    - 0.07  # 03
+    - 0.07  # 04
+    - 0.10  # 05
+    - 0.25  # 06
+    - 0.45  # 07
+    - 0.70  # 08
+    - 0.85  # 09
+    - 0.95  # 10
+    - 1.00  # 11
+    - 1.10  # 12
+    - 1.05  # 13
+    - 1.00  # 14
+    - 0.95  # 15
+    - 0.90  # 16
+    - 1.00  # 17
+    - 1.20  # 18
+    - 1.30  # 19
+    - 1.25  # 20
+    - 1.10  # 21
+    - 0.80  # 22
+    - 0.40  # 23
+
+  # Day-of-week weights (Mon → Sun)
+  day_weights:
+    - 1.00  # Mon
+    - 1.00  # Tue
+    - 1.05  # Wed
+    - 1.05  # Thu
+    - 1.15  # Fri
+    - 1.20  # Sat
+    - 1.10  # Sun
+
+# ─── Channels ───────────────────────────────────────────────────────────────
+# Which channel a subscriber uses. Weighted distribution.
+channels:
+  activation_channel_weights:
+    retail: 0.35
+    online: 0.25
+    call_center: 0.10
+    dealer: 0.15
+    app: 0.15
+
+  purchase_channel_weights:
+    app: 0.40
+    online: 0.25
+    ussd: 0.20
+    retail: 0.10
+    call_center: 0.05
+
+# ─── Destinations (for CDRs) ────────────────────────────────────────────────
+# Mostly domestic; a fraction international. Fraud injects high-cost intl.
+destinations:
+  domestic_share: 0.85
+  international_share: 0.15
+
+  # International destinations with cost multiplier and IRSF risk.
+  international_countries:
+    - code: "GB"
+      name: "United Kingdom"
+      cost_multiplier: 3.0
+      irsf_risk: 0.05
+    - code: "FR"
+      name: "France"
+      cost_multiplier: 2.5
+      irsf_risk: 0.03
+    - code: "US"
+      name: "United States"
+      cost_multiplier: 4.0
+      irsf_risk: 0.10
+    - code: "SO"
+      name: "Somalia"
+      cost_multiplier: 15.0
+      irsf_risk: 0.75     # classic IRSF destination
+    - code: "PK"
+      name: "Pakistan"
+      cost_multiplier: 8.0
+      irsf_risk: 0.40
+    - code: "LV"
+      name: "Latvia"
+      cost_multiplier: 12.0
+      irsf_risk: 0.85     # classic IRSF destination
+
+# ─── Output Paths ───────────────────────────────────────────────────────────
+paths:
+  # Where the ground-truth labels file goes (local, not S3).
+  labels_file: "simulator/out/labels.parquet"
+
+  # Where local Parquet outputs go before upload (or write directly to S3).
+  local_raw_dir: "simulator/out/raw"
+
+  # S3 bucket where raw events land (LocalStack).
+  s3_bucket: "telco-fraud-bronze"
+
+  # Kinesis streams.
+  kinesis_activation_stream: "sim-activation-stream"
+  kinesis_purchases_stream: "bundle-purchases-stream"
+
+  # DynamoDB tables.
+  dynamodb_subscribers: "subscriber_profile"
+  dynamodb_bundles: "bundle_catalog"
+
+# ─── Write Modes ────────────────────────────────────────────────────────────
+outputs:
+  # Write events to Kinesis (streaming sources).
+  write_to_kinesis: true
+
+  # Write batch files directly to S3 (batch sources).
+  write_to_s3: true
+
+  # Load reference data into DynamoDB.
+  write_to_dynamodb: true
+
+  # Also write local Parquet copies (useful for debugging + training).
+  write_local_parquet: true
+
+  # Batch size for Kinesis PutRecords (max 500).
+  kinesis_batch_size: 500
+
+  # S3 key format: YYYY/MM/DD partitions.
+  s3_partition_format: "year=%Y/month=%m/day=%d"
