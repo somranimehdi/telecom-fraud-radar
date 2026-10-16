@@ -1,0 +1,11 @@
+# LocalStack
+.localstack/
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
