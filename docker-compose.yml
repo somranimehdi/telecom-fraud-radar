@@ -9,7 +9,7 @@ services:
       - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN}
       - DEBUG=1
       - PERSISTENCE=1
-      - SERVICES=s3,dynamodb,kinesis,sns,lambda,athena,glue,iam,logs,sts
+      - SERVICES=s3,dynamodb,kinesis,sns,sqs,lambda,athena,glue,iam,logs,sts
       - LAMBDA_EXECUTOR=docker
       - LAMBDA_DOCKER_NETWORK=telecom-fraud-radar_default
       - DOCKER_HOST=unix:///var/run/docker.sock
