@@ -4,8 +4,7 @@ Quality Gate — I/O
 Read raw data from S3 and write Silver / Quarantine Parquet files.
 
 Design:
-  - Parquet for batch sources (voice, data, revenue).
-  - JSONL for streaming sources (activation, purchases).
+  - Detect Parquet and JSONL/JSON input formats from each object's extension.
   - Both are read into Polars DataFrames.
   - Output is always Parquet (Silver and Quarantine) — columnar, compressed,
     queryable by Athena.
@@ -93,24 +92,35 @@ def read_source(
     s3,
     bucket: str,
     prefix: str,
-    file_type: str = "parquet",
+    file_type: str | None = None,
 ) -> tuple[pl.DataFrame, int]:
     """
     Read all files under a prefix. Returns (DataFrame, file_count).
 
-    file_type: "parquet" or "jsonl"
+    Files are parsed by extension (.parquet, .jsonl, .json). file_type is a
+    fallback for legacy objects without a recognized extension.
     """
     keys = [o["Key"] for o in list_objects(s3, bucket, prefix)]
     if not keys:
         return pl.DataFrame(), 0
 
-    if file_type == "parquet":
-        df = read_parquet_from_s3(s3, bucket, keys)
-    elif file_type == "jsonl":
-        df = read_jsonl_from_s3(s3, bucket, keys)
-    else:
-        raise ValueError(f"unknown file_type: {file_type}")
+    parquet_keys = [key for key in keys if key.lower().endswith(".parquet")]
+    json_keys = [key for key in keys if key.lower().endswith((".jsonl", ".json"))]
+    unknown_keys = [key for key in keys if key not in parquet_keys and key not in json_keys]
+    if unknown_keys:
+        if file_type == "parquet":
+            parquet_keys.extend(unknown_keys)
+        elif file_type in {"jsonl", "json"}:
+            json_keys.extend(unknown_keys)
+        else:
+            raise ValueError(f"cannot determine format for S3 objects: {unknown_keys}")
 
+    frames: list[pl.DataFrame] = []
+    if parquet_keys:
+        frames.append(read_parquet_from_s3(s3, bucket, parquet_keys))
+    if json_keys:
+        frames.append(read_jsonl_from_s3(s3, bucket, json_keys))
+    df = pl.concat(frames, how="diagonal_relaxed") if frames else pl.DataFrame()
     return df, len(keys)
 
 

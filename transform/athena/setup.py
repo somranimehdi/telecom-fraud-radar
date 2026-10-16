@@ -91,7 +91,14 @@ def _s3_partitions(s3, bucket: str, prefix: str, fields: tuple[str, ...]):
     return partitions
 
 
-def _run_query(athena, sql: str, output_location: str, verbose: bool = True) -> None:
+def _run_query(
+    athena,
+    sql: str,
+    output_location: str,
+    verbose: bool = True,
+    max_wait_seconds: int = 900,
+    poll_interval_seconds: int = 5,
+) -> None:
     response = athena.start_query_execution(
         QueryString=sql,
         QueryExecutionContext={"Database": DATABASE},
@@ -99,12 +106,24 @@ def _run_query(athena, sql: str, output_location: str, verbose: bool = True) -> 
         WorkGroup=WORKGROUP,
     )
     query_id = response["QueryExecutionId"]
+    print(f"  Athena query {query_id}: submitted")
+    started = time.monotonic()
+    next_report = 30
     while True:
         execution = athena.get_query_execution(QueryExecutionId=query_id)["QueryExecution"]
         status = execution["Status"]["State"]
         if status in {"SUCCEEDED", "FAILED", "CANCELLED"}:
             break
-        time.sleep(1)
+        elapsed = time.monotonic() - started
+        if elapsed >= max_wait_seconds:
+            raise TimeoutError(
+                f"Athena query {query_id} exceeded {max_wait_seconds}s; "
+                f"status object: {execution.get('Status', {})}\nSQL: {sql}"
+            )
+        if elapsed >= next_report:
+            print(f"  Athena query {query_id}: {status} after {int(elapsed)}s")
+            next_report += 30
+        time.sleep(min(poll_interval_seconds, max_wait_seconds - elapsed))
     if status != "SUCCEEDED":
         reason = execution["Status"].get("StateChangeReason", "unknown Athena error")
         raise RuntimeError(f"Athena query {query_id} {status}: {reason}\nSQL: {sql}")

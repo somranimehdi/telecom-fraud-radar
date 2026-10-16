@@ -41,6 +41,7 @@ class SubscriberProfile:
     lines_per_identity: int
     risk_score_baseline: Decimal
     created_at: datetime
+    activation_date: datetime | None = None
 
 
 @dataclass
@@ -52,6 +53,7 @@ class DailyActivity:
     data_sessions: list[dict[str, Any]] = field(default_factory=list)
     revenue_txs: list[dict[str, Any]] = field(default_factory=list)
     bundle_purchases: list[dict[str, Any]] = field(default_factory=list)
+    activation_event: dict[str, Any] | None = None
 
 
 # ─── Subscriber Generation ──────────────────────────────────────────────────
@@ -81,6 +83,7 @@ def generate_subscribers(
     n: int,
     start_date: datetime,
     seed: int,
+    simulation_days: int = 30,
 ) -> list[SubscriberProfile]:
     """Generate `n` legitimate subscriber profiles."""
     rng = Random(seed)
@@ -95,6 +98,9 @@ def generate_subscribers(
         # Account age: most subscribers are established, some are new.
         # Log-normal-ish: exp(6.5) ≈ 665 days median, long tail both ways.
         account_age = int(np.clip(np_rng.lognormal(mean=6.0, sigma=1.0), 0, 5000))
+        new_in_window = rng.random() < 0.05
+        if new_in_window:
+            account_age = 0
 
         # lines_per_identity: mostly 1, business/enterprise higher.
         if segment == "business":
@@ -113,7 +119,11 @@ def generate_subscribers(
         # Add noise so the score isn't deterministic.
         risk = float(np.clip(base_risk + np_rng.normal(0, 0.05), 0.0, 1.0))
 
-        created_at = start_date - timedelta(days=account_age)
+        if new_in_window:
+            created_at = start_date + timedelta(days=rng.randrange(max(1, simulation_days)))
+        else:
+            created_at = start_date - timedelta(days=account_age)
+        activation_date = created_at
 
         subscribers.append(
             SubscriberProfile(
@@ -126,6 +136,7 @@ def generate_subscribers(
                 lines_per_identity=lines,
                 risk_score_baseline=Decimal(f"{risk:.4f}"),
                 created_at=created_at,
+                activation_date=activation_date,
             )
         )
 
@@ -302,6 +313,23 @@ def generate_daily_activity(
 ) -> DailyActivity:
     """Generate one subscriber's legit behavior for a single day."""
     activity = DailyActivity(subscriber_id=subscriber.subscriber_id, day=day)
+
+    # Emit an activation only on the subscriber's actual first day on network.
+    if subscriber.activation_date is not None and subscriber.activation_date.date() == day.date():
+        hour = _pick_hour(np_rng, cfg)
+        ts = day.replace(
+            hour=hour, minute=int(np_rng.integers(0, 60)),
+            second=0, microsecond=0, tzinfo=timezone.utc,
+        )
+        activity.activation_event = {
+            "event_id": f"ACT{rng.randint(10**9, 10**10)}",
+            "subscriber_id": subscriber.subscriber_id,
+            "msisdn": subscriber.msisdn,
+            "imsi": subscriber.imsi,
+            "event_type": "ACTIVATED",
+            "timestamp": ts,
+            "channel": rng.choice(C.ACTIVATION_CHANNELS),
+        }
 
     day_w = _day_weight(cfg, day.weekday())
 

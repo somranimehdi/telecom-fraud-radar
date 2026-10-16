@@ -73,8 +73,9 @@ class EventCollector:
         self.revenue_txs.extend(activity.revenue_txs)
         self.bundle_purchases.extend(activity.bundle_purchases)
 
-        # Activation event attached by fraud injector (SIM swap)
-        act_event = getattr(activity, "activation_event", None)
+        # Baseline activations and fraud-induced SIM swaps share the same
+        # event collection, but are generated independently.
+        act_event = activity.activation_event
         if act_event:
             self.activation_events.append(act_event)
 
@@ -100,7 +101,7 @@ class EventCollector:
 def run_simulation(
     config_path: str | Path = "simulator/config.yaml",
     write_outputs: bool = True,
-) -> tuple[EventCollector, list[FraudLabel]]:
+) -> tuple[EventCollector, list[FraudLabel], list[SubscriberProfile]]:
     """
     Run the full simulator.
 
@@ -130,7 +131,9 @@ def run_simulation(
 
     # 1. Generate subscriber profiles
     print("[1/5] Generating subscriber profiles...")
-    subscribers = generate_subscribers(n_subs, start_date, seed=seed)
+    subscribers = generate_subscribers(
+        n_subs, start_date, seed=seed, simulation_days=n_days
+    )
     print(f"      → {len(subscribers):,} profiles")
 
     # 2. Assign fraud
@@ -157,6 +160,28 @@ def run_simulation(
         day = start_date + timedelta(days=day_index)
         for sub in subscribers:
             activity = generate_daily_activity(sub, day, cfg, rng, np_rng)
+
+            # Occasional legitimate SIM replacements for upgrades, loss, or repair.
+            if (
+                activity.activation_event is None
+                and sub.activation_date is not None
+                and sub.activation_date.date() != day.date()
+                and rng.random() < 0.003 / 30
+            ):
+                swap_hour = int(np_rng.integers(0, 24))
+                swap_ts = day.replace(
+                    hour=swap_hour, minute=int(np_rng.integers(0, 60)),
+                    second=0, microsecond=0, tzinfo=timezone.utc,
+                )
+                activity.activation_event = {
+                    "event_id": f"ACT{rng.randint(10**9, 10**10)}",
+                    "subscriber_id": sub.subscriber_id,
+                    "msisdn": sub.msisdn,
+                    "imsi": sub.imsi,
+                    "event_type": "SWAPPED",
+                    "timestamp": swap_ts,
+                    "channel": rng.choice(["retail", "call_center", "dealer"]),
+                }
 
             # Apply fraud if this subscriber has an assignment
             assignment = assignments.get(sub.subscriber_id)

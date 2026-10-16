@@ -16,6 +16,7 @@ Design:
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -72,6 +73,8 @@ def write_events_to_kinesis(
     events: Iterable[dict],
     batch_size: int = 500,
     verbose: bool = True,
+    rate_limit_rps: int = 800,
+    max_retries: int = 3,
 ) -> dict:
     """
     Push events to a Kinesis stream using PutRecords in batches.
@@ -80,10 +83,14 @@ def write_events_to_kinesis(
     sent = 0
     failed = 0
     batches = 0
+    retries = 0
     batch: list[dict] = []
+    batch_size = max(1, min(batch_size, 500))
+    min_interval = batch_size / max(rate_limit_rps, 1)
+    last_request_at = 0.0
 
     def _flush():
-        nonlocal sent, failed, batches
+        nonlocal sent, failed, batches, retries, last_request_at
         if not batch:
             return
         records = [
@@ -93,11 +100,40 @@ def write_events_to_kinesis(
             }
             for evt in batch
         ]
-        resp = kinesis.put_records(StreamName=stream_name, Records=records)
-        failed_count = resp.get("FailedRecordCount", 0)
-        sent += len(records) - failed_count
-        failed += failed_count
-        batches += 1
+        pending = records
+        attempt = 0
+        while pending:
+            delay = min_interval - (time.monotonic() - last_request_at)
+            if last_request_at and delay > 0:
+                time.sleep(delay)
+            try:
+                resp = kinesis.put_records(StreamName=stream_name, Records=pending)
+                last_request_at = time.monotonic()
+                batches += 1
+            except Exception:
+                if attempt >= max_retries:
+                    failed += len(pending)
+                    break
+                time.sleep(min(0.25 * (2 ** attempt), 5.0))
+                attempt += 1
+                retries += 1
+                continue
+
+            result_records = resp.get("Records", [])
+            next_pending = [
+                record for record, result in zip(pending, result_records)
+                if result.get("ErrorCode")
+            ]
+            sent += len(pending) - len(next_pending)
+            if not next_pending:
+                break
+            if attempt >= max_retries:
+                failed += len(next_pending)
+                break
+            pending = next_pending
+            time.sleep(min(0.25 * (2 ** attempt), 5.0))
+            attempt += 1
+            retries += 1
         batch.clear()
 
     for evt in events:
@@ -107,9 +143,12 @@ def write_events_to_kinesis(
     _flush()
 
     if verbose:
-        print(f"      → {stream_name}: {sent:,} sent, {failed:,} failed in {batches} batches")
+        print(
+            f"      → {stream_name}: {sent:,} sent, {failed:,} failed "
+            f"in {batches} requests ({retries:,} retries)"
+        )
 
-    return {"sent": sent, "failed": failed, "batches": batches}
+    return {"sent": sent, "failed": failed, "batches": batches, "retries": retries}
 
 
 # ─── S3 Batch Writer ────────────────────────────────────────────────────────
@@ -323,6 +362,22 @@ def write_all(
     if collector.activation_events and cfg["outputs"]["write_to_kinesis"]:
         summary["kinesis_activation"] = write_events_to_kinesis(
             clients["kinesis"], act_stream, collector.activation_events, batch_size
+        )
+
+    # Direct S3 writes make the raw pipeline reproducible without a live
+    # Kinesis consumer. Keep the Kinesis path enabled independently.
+    if collector.activation_events and cfg["outputs"]["write_to_s3"]:
+        summary["s3_activation"] = _write_partitioned_by_day(
+            clients["s3"], bucket, "raw/activation",
+            collector.activation_events, filename="activation.parquet",
+            verbose=False,
+        )
+
+    if collector.bundle_purchases and cfg["outputs"]["write_to_s3"]:
+        summary["s3_bundle_purchases"] = _write_partitioned_by_day(
+            clients["s3"], bucket, "raw/bundles/purchases",
+            collector.bundle_purchases, filename="purchases.parquet",
+            verbose=False,
         )
 
     # 2. Kinesis: bundle purchases
