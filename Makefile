@@ -25,7 +25,7 @@ SNS_TOPIC   := fraud-alerts-topic
 KINESIS_1   := sim-activation-stream
 KINESIS_2   := bundle-purchases-stream
 
-.PHONY: help up down destroy infra test simulate logs shell health clean
+.PHONY: help up down destroy infra test simulate logs shell health clean quality quality-quiet quality-one
 
 help:
 	@echo "Telecom Fraud Radar — available targets:"
@@ -38,6 +38,8 @@ help:
 	@echo "  make logs       Tail LocalStack logs"
 	@echo "  make shell      Open a shell inside the container"
 	@echo "  make health     Print LocalStack health JSON"
+	@echo "  make quality    Run the quality gate on all sources"
+	@echo "  make quality-one SOURCE=voice   Run on a single source"
 	@echo "  make clean      Remove Python caches"
 
 # ─── Environment ────────────────────────────────────────────────────────────
@@ -115,6 +117,22 @@ simulate: infra
 	else \
 		echo "⏳ Simulator not yet implemented (Week 2)."; \
 	fi
+
+
+# ─── Quality Gate ───────────────────────────────────────────────────────────
+
+quality:
+	$(PY) -m quality_gate.run
+
+quality-quiet:
+	$(PY) -m quality_gate.run --quiet
+
+quality-one:
+	@if [ -z "$(SOURCE)" ]; then \
+		echo "Usage: make quality-one SOURCE=voice"; \
+		exit 1; \
+	fi
+	$(PY) -m quality_gate.run --sources $(SOURCE)
 
 # ─── Tests ──────────────────────────────────────────────────────────────────
 

@@ -1,0 +1,126 @@
+"""
+Quality Gate — All-Source Orchestrator
+----------------------------------------
+Wires validate_source() + emit_metrics_and_alert() into a single entry
+point that processes every source in one run.
+
+Design:
+  - Sequential. No parallelism needed at this scale.
+  - Fail-safe per source: one source's failure doesn't block others.
+  - Returns a GateReport with per-source details.
+  - Emits metrics + alert at the end (once, for the whole run).
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Any
+
+from quality_gate.metrics import emit_metrics_and_alert
+from quality_gate.models import GateReport
+from quality_gate.runner import SOURCE_PATHS, validate_source
+
+
+DEFAULT_SOURCES: list[str] = ["voice", "data", "revenue", "activation", "purchases"]
+
+
+# ─── Public API ─────────────────────────────────────────────────────────────
+
+def run_gate(
+    s3,
+    sns,
+    cfg: dict,
+    sources: list[str] | None = None,
+    verbose: bool = True,
+) -> GateReport:
+    """
+    Run the quality gate on all (or specified) sources.
+
+    Args:
+      s3:         boto3 S3 client
+      sns:        boto3 SNS client
+      cfg:        parsed config.yaml dict
+      sources:    optional list of sources; defaults to DEFAULT_SOURCES
+      verbose:    if True, prints per-source progress
+
+    Returns:
+      GateReport — the full run summary (also written to S3 as metrics).
+    """
+    sources = sources or DEFAULT_SOURCES
+    bucket = cfg["paths"]["s3_bucket"]
+    metrics_prefix = cfg.get("quality_gate", {}).get("metrics_prefix", "quality_metrics")
+    quarantine_threshold = cfg.get("quality_gate", {}).get("quarantine_threshold", 0.05)
+    topic_arn = f"arn:aws:sns:{cfg.get('region', 'us-east-1')}:000000000000:fraud-alerts-topic"
+
+    run_id = "gate_" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    report = GateReport(run_id=run_id, quarantine_threshold=quarantine_threshold)
+
+    if verbose:
+        print("═" * 65)
+        print(f"  Quality Gate — Run {run_id}")
+        print(f"  Sources: {', '.join(sources)}")
+        print(f"  Bucket : {bucket}")
+        print(f"  Threshold: {quarantine_threshold:.2%}")
+        print("═" * 65)
+
+    # Filter out unknown sources with a warning
+    valid_sources = [s for s in sources if s in SOURCE_PATHS]
+    for s in sources:
+        if s not in SOURCE_PATHS:
+            print(f"  ⚠️  Skipping unknown source: {s}")
+
+    # Process each source
+    for src in valid_sources:
+        try:
+            src_report = validate_source(
+                s3=s3,
+                bucket=bucket,
+                source=src,
+                run_id=run_id,
+                verbose=verbose,
+            )
+            report.add_source_report(src_report)
+        except Exception as exc:
+            if verbose:
+                print(f"  ❌ [{src}] failed: {type(exc).__name__}: {exc}")
+            # Continue with other sources — partial success is OK
+
+    report.finish()
+
+    # Emit metrics + alert
+    if verbose:
+        print()
+        print("─" * 65)
+        print("  Emitting metrics")
+        print("─" * 65)
+
+    try:
+        emit_metrics_and_alert(
+            s3=s3,
+            sns=sns,
+            bucket=bucket,
+            metrics_prefix=metrics_prefix,
+            topic_arn=topic_arn,
+            report=report,
+            verbose=verbose,
+        )
+    except Exception as exc:
+        if verbose:
+            print(f"  ⚠️  metrics/alert failed: {type(exc).__name__}: {exc}")
+
+    if verbose:
+        print()
+        print("═" * 65)
+        print("  Gate Summary")
+        print("═" * 65)
+        print(f"  Total rows  : {report.total_rows:,}")
+        print(f"  Passed      : {report.total_passed:,}")
+        print(f"  Quarantined : {report.total_failed:,}")
+        print(f"  Rate        : {report.overall_quarantine_rate:.4%}")
+        if report.sources_over_threshold():
+            print(f"  ⚠️  Over threshold: {report.sources_over_threshold()}")
+        else:
+            print(f"  ✅ All sources within threshold")
+        print("═" * 65)
+
+    return report
