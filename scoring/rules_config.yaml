@@ -1,0 +1,6 @@
+rules:
+  irsf_high_risk_countries: [SO, PK, LV]
+  irsf_min_calls_24h: 10
+  new_account_max_days: 30
+  high_value_purchase_min_tnd: 75
+  repeated_bundle_min_purchases_24h: 3

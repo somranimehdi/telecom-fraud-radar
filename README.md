@@ -77,15 +77,13 @@ Bundle catalog  ─────────────────────�
 
 ## Data Quality Gate
 
-Starting with three checks per source:
+The gate applies these checks per source:
 - **Schema** — every row matches its Pydantic contract (`contracts/`).
 - **Duplicates** — no repeated `event_id` / `transaction_id` / `call_id`.
 - **Ranges** — non-negative amounts and durations, no future timestamps.
 
-Later iterations add:
-- Referential checks (does `bundle_id` exist in the catalog?).
-- Freshness alerts (is today's revenue file present?).
-- Business rules (revenue total vs. expected daily range).
+It also checks referential integrity against the subscriber and bundle
+reference tables, and alerts when the newest S3 partition is stale.
 
 Failed rows are written to `quarantine/` with a `reason` column. Quarantine
 rate above a threshold publishes to SNS.
@@ -173,10 +171,16 @@ make infra
 # 4. Run the simulator (Week 2 onwards)
 make simulate
 
-# 5. Run tests
-make test
+# 5. Validate source data and produce Silver/Quarantine
+make quality
 
-# 6. Tear down
+# 6. Build Gold, set up Athena, and write rule candidates
+make week4
+
+# 7. Run an investigation query
+make athena-query SQL=transform/athena/investigations/sim_swap_24h.sql
+
+# 8. Tear down
 make destroy
 ```
 
@@ -185,9 +189,9 @@ make destroy
 ## Build Progress
 
 - [x] **Day 1** — Environment, infrastructure, contracts
-- [ ] **Week 2** — Simulator + bronze ingestion
-- [ ] **Week 3** — Quality gate + silver
-- [ ] **Week 4** — Gold, Athena, rules engine
+- [x] **Week 2** — Simulator + bronze ingestion
+- [x] **Week 3** — Quality gate + silver
+- [x] **Week 4** — Gold, Athena, rules engine
 - [ ] **Week 5** — Model training + scoring Lambda
 - [ ] **Week 6** — Dashboard, demo video, polish
 
@@ -232,6 +236,33 @@ unchanged on real AWS with real data.
 
 
 ---
+
+## Week 4: Gold, Athena, and Rules
+
+Run `make week4` after Bronze has been validated into Silver. It builds
+`gold/account_daily_features/` (one subscriber-day row, with source IDs
+deduplicated across repeated quality-gate runs), exports DynamoDB subscriber
+and bundle snapshots to `gold/reference/`, creates Glue database
+`telecom_fraud_radar` and Athena workgroup `fraud-radar-workgroup`, registers
+external tables and discovered S3 partitions, then upserts candidate alerts
+into DynamoDB table `fraud_alerts` (key `alert_id`, GSI `subscriber-index`).
+
+Week 4 was completed and run end to end in LocalStack. All eight external
+tables were created and their S3 partitions registered. The four saved
+investigation queries were executed successfully, and the rules workflow
+upserted 26 candidate alerts to `fraud_alerts`. Rerun the full workflow with
+`make week4`.
+
+Saved investigation SQL is in `transform/athena/investigations/`. Use
+`make athena-query SQL=<file>` to run one query. Rules cover a SIM swap
+followed by international calls within 24 hours, high-risk destination call
+bursts, high-value purchases on young or non-verified accounts without a
+completed payment in the prior seven days, and repeat purchases of one bundle
+within 24 hours.
+
+**Bundle abuse limitation:** bundle-usage source 6 is deferred, so the repeat
+purchase rule is only a proxy. The project does not claim to detect
+allowance over-consumption yet.
 
 ## License
 

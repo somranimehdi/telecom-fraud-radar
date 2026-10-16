@@ -207,7 +207,7 @@ quality_gate:
   # Also write local Parquet copies (useful for debugging + training).
   write_local_parquet: true
 
-  # Batch size for Kinesis PutRecords (max 500).
+  # Batch size for Kinesis PctRecords (max 500).
   kinesis_batch_size: 500
 
   # S3 key format: YYYY/MM/DD partitions.
