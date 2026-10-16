@@ -17,7 +17,7 @@ Design:
     duplicates (its ID may be missing anyway).
   - Reason is preserved verbatim from the failing check.
   - Per-source config drives file type, prefixes, contract.
-  - Silent on empty sources (returns an empty report).
+  - Empty configured sources are errors unless explicitly allowed.
 """
 
 from __future__ import annotations
@@ -53,7 +53,11 @@ class SourcePaths:
     raw_prefix: str
     silver_prefix: str
     quarantine_prefix: str
-    file_type: str            # "parquet" or "jsonl"
+    file_type: str            # "auto", "parquet" or "jsonl"
+
+
+class EmptySourceError(ValueError):
+    """A configured source has no readable files under its raw prefix."""
 
 
 SOURCE_PATHS: dict[str, SourcePaths] = {
@@ -61,31 +65,31 @@ SOURCE_PATHS: dict[str, SourcePaths] = {
         raw_prefix="raw/activation/",
         silver_prefix="silver/activation/",
         quarantine_prefix="quarantine/activation/",
-        file_type="jsonl",
+        file_type="auto",
     ),
     "purchases": SourcePaths(
         raw_prefix="raw/bundles/purchases/",
         silver_prefix="silver/bundles/purchases/",
         quarantine_prefix="quarantine/bundles/purchases/",
-        file_type="jsonl",
+        file_type="auto",
     ),
     "voice": SourcePaths(
         raw_prefix="raw/usage/voice/",
         silver_prefix="silver/usage/voice/",
         quarantine_prefix="quarantine/usage/voice/",
-        file_type="parquet",
+        file_type="auto",
     ),
     "data": SourcePaths(
         raw_prefix="raw/usage/data/",
         silver_prefix="silver/usage/data/",
         quarantine_prefix="quarantine/usage/data/",
-        file_type="parquet",
+        file_type="auto",
     ),
     "revenue": SourcePaths(
         raw_prefix="raw/revenue/prepaid/",
         silver_prefix="silver/revenue/prepaid/",
         quarantine_prefix="quarantine/revenue/prepaid/",
-        file_type="parquet",
+        file_type="auto",
     ),
 }
 
@@ -130,6 +134,7 @@ def validate_source(
     reference: dict | None = None,
     timestamp: datetime | None = None,
     verbose: bool = True,
+    allow_empty: bool = False,
 ) -> SourceReport:
     """
     Validate one source end-to-end. Returns a SourceReport.
@@ -158,6 +163,11 @@ def validate_source(
 
     if verbose:
         print(f"  [{source}] read {file_count} file(s), {df.height:,} rows")
+
+    if file_count == 0 and not allow_empty:
+        raise EmptySourceError(
+            f"source {source!r} has no readable files under prefix {paths.raw_prefix!r}"
+        )
 
     if df.is_empty():
         report.finish()

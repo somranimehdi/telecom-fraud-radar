@@ -75,8 +75,8 @@ down:
 
 destroy:
 	docker compose down
-	rm -rf .localstack
-	@echo "🗑️  Container stopped and .localstack/ deleted."
+	docker run --rm -v "$(PWD)/.localstack:/data" alpine sh -c "rm -rf /data/state /data/tmp"
+	@echo "🗑️  Containers stopped; LocalStack state and temporary files removed. Athena engine files preserved."
 
 # ─── Infrastructure ─────────────────────────────────────────────────────────
 

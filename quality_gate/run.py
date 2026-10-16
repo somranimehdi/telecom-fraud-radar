@@ -19,6 +19,7 @@ import boto3
 import yaml
 
 from quality_gate.gate import DEFAULT_SOURCES, run_gate
+from quality_gate.runner import EmptySourceError
 
 
 # ─── Argument Parsing ───────────────────────────────────────────────────────
@@ -44,6 +45,11 @@ def _parse_args() -> argparse.Namespace:
         "--quiet",
         action="store_true",
         help="Suppress per-source progress output",
+    )
+    p.add_argument(
+        "--allow-empty",
+        action="store_true",
+        help="Allow configured sources with no readable raw files",
     )
     return p.parse_args()
 
@@ -72,14 +78,18 @@ def main() -> None:
     sns = boto3.client("sns", **client_kwargs)
     dynamodb = boto3.resource("dynamodb", **client_kwargs)
 
-    report = run_gate(
-        s3=s3,
-        sns=sns,
-        cfg=cfg,
-        dynamodb=dynamodb,
-        sources=sources,
-        verbose=not args.quiet,
-    )
+    try:
+        report = run_gate(
+            s3=s3,
+            sns=sns,
+            cfg=cfg,
+            dynamodb=dynamodb,
+            sources=sources,
+            verbose=not args.quiet,
+            allow_empty=args.allow_empty,
+        )
+    except EmptySourceError as exc:
+        raise SystemExit(str(exc)) from exc
 
     # Exit code: 0 if all sources in threshold, 1 if any over
     if report.sources_over_threshold():

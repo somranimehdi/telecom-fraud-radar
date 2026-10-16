@@ -24,7 +24,7 @@ from quality_gate.io import (
 )
 from quality_gate.metrics import emit_metrics_and_alert
 from quality_gate.models import GateReport
-from quality_gate.runner import SOURCE_PATHS, validate_source
+from quality_gate.runner import EmptySourceError, SOURCE_PATHS, validate_source
 
 
 DEFAULT_SOURCES: list[str] = ["voice", "data", "revenue", "activation", "purchases"]
@@ -135,6 +135,7 @@ def run_gate(
     dynamodb=None,
     sources: list[str] | None = None,
     verbose: bool = True,
+    allow_empty: bool = False,
 ) -> GateReport:
     """
     Run the quality gate on all (or specified) sources.
@@ -189,6 +190,7 @@ def run_gate(
                 run_id=run_id,
                 reference=reference,
                 verbose=verbose,
+                allow_empty=allow_empty,
             )
 
             # Freshness check
@@ -210,6 +212,8 @@ def run_gate(
                 )
 
             report.add_source_report(src_report)
+        except EmptySourceError:
+            raise
         except Exception as exc:
             if verbose:
                 print(f"  ❌ [{src}] failed: {type(exc).__name__}: {exc}")

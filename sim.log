@@ -1,0 +1,264 @@
+docker compose up -d
+ Network telecom-fraud-radar_default Creating 
+ Network telecom-fraud-radar_default Creating 
+ Network telecom-fraud-radar_default Created 
+ Network telecom-fraud-radar_default Created 
+ Container telecom-fraud-radar-localstack Creating 
+ Container telecom-fraud-radar-localstack Created 
+ Container telecom-fraud-radar-localstack Starting 
+ Container telecom-fraud-radar-localstack Started 
+⏳ Waiting for LocalStack to become healthy...
+✅ LocalStack is healthy.
+── S3 ──
+make_bucket: telco-fraud-bronze
+  ✅ 7 raw prefixes present
+── DynamoDB ──
+  ✅ 2 tables provisioned
+── Kinesis ──
+  ✅ 2 streams provisioned
+── SNS ──
+  ✅ fraud-alerts-topic provisioned
+
+🎉 Infrastructure ready.
+─── Simulator Run ──────────────────────────────
+  Seed         : 42
+  Subscribers  : 10,000
+  Days         : 30
+  Start date   : 2026-09-15
+
+[1/5] Generating subscriber profiles...
+      → 10,000 profiles
+[2/5] Assigning fraud subscribers...
+      → 200 fraud subscribers (2.00%)
+[3/5] Assigning overlap subscribers...
+      → 980 legit-looks-fraud
+      → 40 fraud-looks-legit
+[4/5] Generating 30 days of activity...
+      → day  5/30  (542,670 events, 35.6s)
+      → day 10/30  (1,065,829 events, 68.6s)
+      → day 15/30  (1,612,245 events, 103.1s)
+      → day 20/30  (2,166,338 events, 140.3s)
+      → day 25/30  (2,693,473 events, 176.6s)
+      → day 30/30  (3,229,501 events, 212.3s)
+[5/5] Writing labels + config snapshot...
+      → simulator/out/labels.parquet
+
+─── Run Complete (212.3s) ─────────────────────
+  activation_events   :        599
+  bundle_purchases    :     16,272
+  voice_cdrs          :  1,414,741
+  data_cdrs           :  1,669,475
+  revenue_txs         :    128,414
+  total_events        :  3,229,501
+
+
+─── Uploading to LocalStack ───────────────────
+─── Writing to LocalStack ─────────────────────
+      → sim-activation-stream: 599 sent, 0 failed in 2 requests (0 retries)
+      → bundle-purchases-stream: 16,272 sent, 0 failed in 33 requests (0 retries)
+      → subscriber_profile: 10,000 items
+      → bundle_catalog: 8 items
+─────────────────────────────────────────────
+
+Upload summary:
+{
+  "kinesis_activation": {
+    "sent": 599,
+    "failed": 0,
+    "batches": 2,
+    "retries": 0
+  },
+  "s3_activation": {
+    "2026-09-15": "raw/activation/year=2026/month=09/day=15/activation.parquet",
+    "2026-09-16": "raw/activation/year=2026/month=09/day=16/activation.parquet",
+    "2026-09-17": "raw/activation/year=2026/month=09/day=17/activation.parquet",
+    "2026-09-18": "raw/activation/year=2026/month=09/day=18/activation.parquet",
+    "2026-09-19": "raw/activation/year=2026/month=09/day=19/activation.parquet",
+    "2026-09-20": "raw/activation/year=2026/month=09/day=20/activation.parquet",
+    "2026-09-21": "raw/activation/year=2026/month=09/day=21/activation.parquet",
+    "2026-09-22": "raw/activation/year=2026/month=09/day=22/activation.parquet",
+    "2026-09-23": "raw/activation/year=2026/month=09/day=23/activation.parquet",
+    "2026-09-24": "raw/activation/year=2026/month=09/day=24/activation.parquet",
+    "2026-09-25": "raw/activation/year=2026/month=09/day=25/activation.parquet",
+    "2026-09-26": "raw/activation/year=2026/month=09/day=26/activation.parquet",
+    "2026-09-27": "raw/activation/year=2026/month=09/day=27/activation.parquet",
+    "2026-09-28": "raw/activation/year=2026/month=09/day=28/activation.parquet",
+    "2026-09-29": "raw/activation/year=2026/month=09/day=29/activation.parquet",
+    "2026-09-30": "raw/activation/year=2026/month=09/day=30/activation.parquet",
+    "2026-10-01": "raw/activation/year=2026/month=10/day=01/activation.parquet",
+    "2026-10-02": "raw/activation/year=2026/month=10/day=02/activation.parquet",
+    "2026-10-03": "raw/activation/year=2026/month=10/day=03/activation.parquet",
+    "2026-10-04": "raw/activation/year=2026/month=10/day=04/activation.parquet",
+    "2026-10-05": "raw/activation/year=2026/month=10/day=05/activation.parquet",
+    "2026-10-06": "raw/activation/year=2026/month=10/day=06/activation.parquet",
+    "2026-10-07": "raw/activation/year=2026/month=10/day=07/activation.parquet",
+    "2026-10-08": "raw/activation/year=2026/month=10/day=08/activation.parquet",
+    "2026-10-09": "raw/activation/year=2026/month=10/day=09/activation.parquet",
+    "2026-10-10": "raw/activation/year=2026/month=10/day=10/activation.parquet",
+    "2026-10-11": "raw/activation/year=2026/month=10/day=11/activation.parquet",
+    "2026-10-12": "raw/activation/year=2026/month=10/day=12/activation.parquet",
+    "2026-10-13": "raw/activation/year=2026/month=10/day=13/activation.parquet",
+    "2026-10-14": "raw/activation/year=2026/month=10/day=14/activation.parquet"
+  },
+  "s3_bundle_purchases": {
+    "2026-09-15": "raw/bundles/purchases/year=2026/month=09/day=15/purchases.parquet",
+    "2026-09-16": "raw/bundles/purchases/year=2026/month=09/day=16/purchases.parquet",
+    "2026-09-17": "raw/bundles/purchases/year=2026/month=09/day=17/purchases.parquet",
+    "2026-09-18": "raw/bundles/purchases/year=2026/month=09/day=18/purchases.parquet",
+    "2026-09-19": "raw/bundles/purchases/year=2026/month=09/day=19/purchases.parquet",
+    "2026-09-20": "raw/bundles/purchases/year=2026/month=09/day=20/purchases.parquet",
+    "2026-09-21": "raw/bundles/purchases/year=2026/month=09/day=21/purchases.parquet",
+    "2026-09-22": "raw/bundles/purchases/year=2026/month=09/day=22/purchases.parquet",
+    "2026-09-23": "raw/bundles/purchases/year=2026/month=09/day=23/purchases.parquet",
+    "2026-09-24": "raw/bundles/purchases/year=2026/month=09/day=24/purchases.parquet",
+    "2026-09-25": "raw/bundles/purchases/year=2026/month=09/day=25/purchases.parquet",
+    "2026-09-26": "raw/bundles/purchases/year=2026/month=09/day=26/purchases.parquet",
+    "2026-09-27": "raw/bundles/purchases/year=2026/month=09/day=27/purchases.parquet",
+    "2026-09-28": "raw/bundles/purchases/year=2026/month=09/day=28/purchases.parquet",
+    "2026-09-29": "raw/bundles/purchases/year=2026/month=09/day=29/purchases.parquet",
+    "2026-09-30": "raw/bundles/purchases/year=2026/month=09/day=30/purchases.parquet",
+    "2026-10-01": "raw/bundles/purchases/year=2026/month=10/day=01/purchases.parquet",
+    "2026-10-02": "raw/bundles/purchases/year=2026/month=10/day=02/purchases.parquet",
+    "2026-10-03": "raw/bundles/purchases/year=2026/month=10/day=03/purchases.parquet",
+    "2026-10-04": "raw/bundles/purchases/year=2026/month=10/day=04/purchases.parquet",
+    "2026-10-05": "raw/bundles/purchases/year=2026/month=10/day=05/purchases.parquet",
+    "2026-10-06": "raw/bundles/purchases/year=2026/month=10/day=06/purchases.parquet",
+    "2026-10-07": "raw/bundles/purchases/year=2026/month=10/day=07/purchases.parquet",
+    "2026-10-08": "raw/bundles/purchases/year=2026/month=10/day=08/purchases.parquet",
+    "2026-10-09": "raw/bundles/purchases/year=2026/month=10/day=09/purchases.parquet",
+    "2026-10-10": "raw/bundles/purchases/year=2026/month=10/day=10/purchases.parquet",
+    "2026-10-11": "raw/bundles/purchases/year=2026/month=10/day=11/purchases.parquet",
+    "2026-10-12": "raw/bundles/purchases/year=2026/month=10/day=12/purchases.parquet",
+    "2026-10-13": "raw/bundles/purchases/year=2026/month=10/day=13/purchases.parquet",
+    "2026-10-14": "raw/bundles/purchases/year=2026/month=10/day=14/purchases.parquet"
+  },
+  "kinesis_purchases": {
+    "sent": 16272,
+    "failed": 0,
+    "batches": 33,
+    "retries": 0
+  },
+  "s3_voice": {
+    "2026-09-15": "raw/usage/voice/year=2026/month=09/day=15/voice.parquet",
+    "2026-09-16": "raw/usage/voice/year=2026/month=09/day=16/voice.parquet",
+    "2026-09-17": "raw/usage/voice/year=2026/month=09/day=17/voice.parquet",
+    "2026-09-18": "raw/usage/voice/year=2026/month=09/day=18/voice.parquet",
+    "2026-09-19": "raw/usage/voice/year=2026/month=09/day=19/voice.parquet",
+    "2026-09-20": "raw/usage/voice/year=2026/month=09/day=20/voice.parquet",
+    "2026-09-21": "raw/usage/voice/year=2026/month=09/day=21/voice.parquet",
+    "2026-09-22": "raw/usage/voice/year=2026/month=09/day=22/voice.parquet",
+    "2026-09-23": "raw/usage/voice/year=2026/month=09/day=23/voice.parquet",
+    "2026-09-24": "raw/usage/voice/year=2026/month=09/day=24/voice.parquet",
+    "2026-09-25": "raw/usage/voice/year=2026/month=09/day=25/voice.parquet",
+    "2026-09-26": "raw/usage/voice/year=2026/month=09/day=26/voice.parquet",
+    "2026-09-27": "raw/usage/voice/year=2026/month=09/day=27/voice.parquet",
+    "2026-09-28": "raw/usage/voice/year=2026/month=09/day=28/voice.parquet",
+    "2026-09-29": "raw/usage/voice/year=2026/month=09/day=29/voice.parquet",
+    "2026-09-30": "raw/usage/voice/year=2026/month=09/day=30/voice.parquet",
+    "2026-10-01": "raw/usage/voice/year=2026/month=10/day=01/voice.parquet",
+    "2026-10-02": "raw/usage/voice/year=2026/month=10/day=02/voice.parquet",
+    "2026-10-03": "raw/usage/voice/year=2026/month=10/day=03/voice.parquet",
+    "2026-10-04": "raw/usage/voice/year=2026/month=10/day=04/voice.parquet",
+    "2026-10-05": "raw/usage/voice/year=2026/month=10/day=05/voice.parquet",
+    "2026-10-06": "raw/usage/voice/year=2026/month=10/day=06/voice.parquet",
+    "2026-10-07": "raw/usage/voice/year=2026/month=10/day=07/voice.parquet",
+    "2026-10-08": "raw/usage/voice/year=2026/month=10/day=08/voice.parquet",
+    "2026-10-09": "raw/usage/voice/year=2026/month=10/day=09/voice.parquet",
+    "2026-10-10": "raw/usage/voice/year=2026/month=10/day=10/voice.parquet",
+    "2026-10-11": "raw/usage/voice/year=2026/month=10/day=11/voice.parquet",
+    "2026-10-12": "raw/usage/voice/year=2026/month=10/day=12/voice.parquet",
+    "2026-10-13": "raw/usage/voice/year=2026/month=10/day=13/voice.parquet",
+    "2026-10-14": "raw/usage/voice/year=2026/month=10/day=14/voice.parquet"
+  },
+  "s3_data": {
+    "2026-09-15": "raw/usage/data/year=2026/month=09/day=15/data.parquet",
+    "2026-09-16": "raw/usage/data/year=2026/month=09/day=16/data.parquet",
+    "2026-09-17": "raw/usage/data/year=2026/month=09/day=17/data.parquet",
+    "2026-09-18": "raw/usage/data/year=2026/month=09/day=18/data.parquet",
+    "2026-09-19": "raw/usage/data/year=2026/month=09/day=19/data.parquet",
+    "2026-09-20": "raw/usage/data/year=2026/month=09/day=20/data.parquet",
+    "2026-09-21": "raw/usage/data/year=2026/month=09/day=21/data.parquet",
+    "2026-09-22": "raw/usage/data/year=2026/month=09/day=22/data.parquet",
+    "2026-09-23": "raw/usage/data/year=2026/month=09/day=23/data.parquet",
+    "2026-09-24": "raw/usage/data/year=2026/month=09/day=24/data.parquet",
+    "2026-09-25": "raw/usage/data/year=2026/month=09/day=25/data.parquet",
+    "2026-09-26": "raw/usage/data/year=2026/month=09/day=26/data.parquet",
+    "2026-09-27": "raw/usage/data/year=2026/month=09/day=27/data.parquet",
+    "2026-09-28": "raw/usage/data/year=2026/month=09/day=28/data.parquet",
+    "2026-09-29": "raw/usage/data/year=2026/month=09/day=29/data.parquet",
+    "2026-09-30": "raw/usage/data/year=2026/month=09/day=30/data.parquet",
+    "2026-10-01": "raw/usage/data/year=2026/month=10/day=01/data.parquet",
+    "2026-10-02": "raw/usage/data/year=2026/month=10/day=02/data.parquet",
+    "2026-10-03": "raw/usage/data/year=2026/month=10/day=03/data.parquet",
+    "2026-10-04": "raw/usage/data/year=2026/month=10/day=04/data.parquet",
+    "2026-10-05": "raw/usage/data/year=2026/month=10/day=05/data.parquet",
+    "2026-10-06": "raw/usage/data/year=2026/month=10/day=06/data.parquet",
+    "2026-10-07": "raw/usage/data/year=2026/month=10/day=07/data.parquet",
+    "2026-10-08": "raw/usage/data/year=2026/month=10/day=08/data.parquet",
+    "2026-10-09": "raw/usage/data/year=2026/month=10/day=09/data.parquet",
+    "2026-10-10": "raw/usage/data/year=2026/month=10/day=10/data.parquet",
+    "2026-10-11": "raw/usage/data/year=2026/month=10/day=11/data.parquet",
+    "2026-10-12": "raw/usage/data/year=2026/month=10/day=12/data.parquet",
+    "2026-10-13": "raw/usage/data/year=2026/month=10/day=13/data.parquet",
+    "2026-10-14": "raw/usage/data/year=2026/month=10/day=14/data.parquet"
+  },
+  "s3_revenue": {
+    "2026-09-15": "raw/revenue/prepaid/year=2026/month=09/day=15/revenue.parquet",
+    "2026-09-16": "raw/revenue/prepaid/year=2026/month=09/day=16/revenue.parquet",
+    "2026-09-17": "raw/revenue/prepaid/year=2026/month=09/day=17/revenue.parquet",
+    "2026-09-18": "raw/revenue/prepaid/year=2026/month=09/day=18/revenue.parquet",
+    "2026-09-19": "raw/revenue/prepaid/year=2026/month=09/day=19/revenue.parquet",
+    "2026-09-20": "raw/revenue/prepaid/year=2026/month=09/day=20/revenue.parquet",
+    "2026-09-21": "raw/revenue/prepaid/year=2026/month=09/day=21/revenue.parquet",
+    "2026-09-22": "raw/revenue/prepaid/year=2026/month=09/day=22/revenue.parquet",
+    "2026-09-23": "raw/revenue/prepaid/year=2026/month=09/day=23/revenue.parquet",
+    "2026-09-24": "raw/revenue/prepaid/year=2026/month=09/day=24/revenue.parquet",
+    "2026-09-25": "raw/revenue/prepaid/year=2026/month=09/day=25/revenue.parquet",
+    "2026-09-26": "raw/revenue/prepaid/year=2026/month=09/day=26/revenue.parquet",
+    "2026-09-27": "raw/revenue/prepaid/year=2026/month=09/day=27/revenue.parquet",
+    "2026-09-28": "raw/revenue/prepaid/year=2026/month=09/day=28/revenue.parquet",
+    "2026-09-29": "raw/revenue/prepaid/year=2026/month=09/day=29/revenue.parquet",
+    "2026-09-30": "raw/revenue/prepaid/year=2026/month=09/day=30/revenue.parquet",
+    "2026-10-01": "raw/revenue/prepaid/year=2026/month=10/day=01/revenue.parquet",
+    "2026-10-02": "raw/revenue/prepaid/year=2026/month=10/day=02/revenue.parquet",
+    "2026-10-03": "raw/revenue/prepaid/year=2026/month=10/day=03/revenue.parquet",
+    "2026-10-04": "raw/revenue/prepaid/year=2026/month=10/day=04/revenue.parquet",
+    "2026-10-05": "raw/revenue/prepaid/year=2026/month=10/day=05/revenue.parquet",
+    "2026-10-06": "raw/revenue/prepaid/year=2026/month=10/day=06/revenue.parquet",
+    "2026-10-07": "raw/revenue/prepaid/year=2026/month=10/day=07/revenue.parquet",
+    "2026-10-08": "raw/revenue/prepaid/year=2026/month=10/day=08/revenue.parquet",
+    "2026-10-09": "raw/revenue/prepaid/year=2026/month=10/day=09/revenue.parquet",
+    "2026-10-10": "raw/revenue/prepaid/year=2026/month=10/day=10/revenue.parquet",
+    "2026-10-11": "raw/revenue/prepaid/year=2026/month=10/day=11/revenue.parquet",
+    "2026-10-12": "raw/revenue/prepaid/year=2026/month=10/day=12/revenue.parquet",
+    "2026-10-13": "raw/revenue/prepaid/year=2026/month=10/day=13/revenue.parquet",
+    "2026-10-14": "raw/revenue/prepaid/year=2026/month=10/day=14/revenue.parquet"
+  },
+  "dynamodb_subscribers": 10000,
+  "dynamodb_bundles": 8
+}
+
+Label summary:
+{
+  "total_subscribers": 10000,
+  "fraud_subscribers": 200,
+  "fraud_rate": 0.02,
+  "by_archetype": [
+    {
+      "archetype": "sim_swap_takeover",
+      "n": 72
+    },
+    {
+      "archetype": "irsf",
+      "n": 63
+    },
+    {
+      "archetype": "subscription_fraud",
+      "n": 44
+    },
+    {
+      "archetype": "bundle_abuse",
+      "n": 21
+    }
+  ]
+}

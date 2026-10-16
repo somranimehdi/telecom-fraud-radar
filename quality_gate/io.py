@@ -38,7 +38,7 @@ def list_objects(s3, bucket: str, prefix: str) -> list[dict]:
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
         for obj in page.get("Contents", []):
             # Skip the empty "folder placeholder" objects (keys ending in /)
-            if obj["Key"].endswith("/"):
+            if obj["Key"].endswith("/") or obj.get("Size", 0) == 0:
                 continue
             out.append(obj)
     return out
@@ -97,8 +97,8 @@ def read_source(
     """
     Read all files under a prefix. Returns (DataFrame, file_count).
 
-    Files are parsed by extension (.parquet, .jsonl, .json). file_type is a
-    fallback for legacy objects without a recognized extension.
+    In auto mode, files are parsed by extension (.parquet, .jsonl, .json).
+    Other file types can use file_type as a fallback for legacy objects.
     """
     keys = [o["Key"] for o in list_objects(s3, bucket, prefix)]
     if not keys:
@@ -112,7 +112,7 @@ def read_source(
             parquet_keys.extend(unknown_keys)
         elif file_type in {"jsonl", "json"}:
             json_keys.extend(unknown_keys)
-        else:
+        elif file_type != "auto":
             raise ValueError(f"cannot determine format for S3 objects: {unknown_keys}")
 
     frames: list[pl.DataFrame] = []
@@ -121,7 +121,7 @@ def read_source(
     if json_keys:
         frames.append(read_jsonl_from_s3(s3, bucket, json_keys))
     df = pl.concat(frames, how="diagonal_relaxed") if frames else pl.DataFrame()
-    return df, len(keys)
+    return df, len(parquet_keys) + len(json_keys)
 
 
 # ─── Writing ────────────────────────────────────────────────────────────────
