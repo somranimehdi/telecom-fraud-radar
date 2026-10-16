@@ -83,7 +83,9 @@ class SourceReport:
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
     finished_at: str = ""
-
+    # Freshness — filled in by the gate (not by validate_source)
+    freshness_ok: bool = True
+    freshness_days_behind: int | None = None
     # S3 locations of outputs
     silver_prefix: str = ""
     quarantine_prefix: str = ""
@@ -123,6 +125,9 @@ class SourceReport:
             "finished_at": self.finished_at,
             "silver_prefix": self.silver_prefix,
             "quarantine_prefix": self.quarantine_prefix,
+             "freshness_ok": self.freshness_ok,
+            "freshness_days_behind": self.freshness_days_behind,
+
         }
 
 

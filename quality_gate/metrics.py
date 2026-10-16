@@ -6,7 +6,9 @@ Two responsibilities:
   1. Write the GateReport as JSON to S3 (`quality_metrics/`).
      This is the persistent record of every gate run.
 
-  2. Publish an SNS alert if any source exceeds the quarantine threshold.
+  2. Publish an SNS alert if any source is:
+       a. Over the quarantine threshold, OR
+       b. Stale (no recent data).
 
 Design:
   - Metrics are always written (success or failure of alerting).
@@ -49,30 +51,22 @@ def write_gate_metrics(
 
 # ─── SNS Alerting ───────────────────────────────────────────────────────────
 
-def publish_quality_alert(
-    sns,
-    topic_arn: str,
-    report: GateReport,
-    verbose: bool = True,
-) -> bool:
+def _build_alert_payload(report: GateReport) -> dict:
     """
-    Publish a quality alert to SNS if any source is over threshold.
-    Returns True if an alert was published, False otherwise.
+    Build the SNS message body from the GateReport.
+    Includes both quarantine and freshness info per source.
     """
-    over = report.sources_over_threshold()
-    if not over:
-        if verbose:
-            print(f"  [metrics] no source over threshold ({report.quarantine_threshold:.2%})")
-        return False
+    over_quarantine = report.sources_over_threshold()
+    stale_sources = [r.source for r in report.source_reports if not r.freshness_ok]
 
-    subject = f"[QUALITY ALERT] {len(over)} source(s) over threshold"
-    message = {
-        "alert_type": "quality_gate_threshold_exceeded",
+    return {
+        "alert_type": "quality_gate",
         "run_id": report.run_id,
         "finished_at": report.finished_at,
         "overall_quarantine_rate": round(report.overall_quarantine_rate, 6),
-        "threshold": report.quarantine_threshold,
-        "sources_over_threshold": over,
+        "quarantine_threshold": report.quarantine_threshold,
+        "sources_over_quarantine_threshold": over_quarantine,
+        "stale_sources": stale_sources,
         "sources": [
             {
                 "source": r.source,
@@ -80,10 +74,42 @@ def publish_quality_alert(
                 "failed_rows": r.failed_rows,
                 "quarantine_rate": round(r.quarantine_rate, 6),
                 "failures_by_check": r.failures_by_check,
+                "freshness_ok": r.freshness_ok,
+                "freshness_days_behind": r.freshness_days_behind,
             }
             for r in report.source_reports
         ],
     }
+
+
+def publish_quality_alert(
+    sns,
+    topic_arn: str,
+    report: GateReport,
+    verbose: bool = True,
+) -> bool:
+    """
+    Publish a quality alert to SNS if any source is over the quarantine
+    threshold OR stale. Returns True if an alert was published.
+    """
+    over_quarantine = report.sources_over_threshold()
+    stale_sources = [r.source for r in report.source_reports if not r.freshness_ok]
+
+    if not over_quarantine and not stale_sources:
+        if verbose:
+            print(f"  [metrics] no source over threshold ({report.quarantine_threshold:.2%})")
+            print(f"  [metrics] all sources fresh")
+        return False
+
+    # Build a human-readable subject summarizing what's wrong
+    parts = []
+    if over_quarantine:
+        parts.append(f"{len(over_quarantine)} over threshold")
+    if stale_sources:
+        parts.append(f"{len(stale_sources)} stale")
+    subject = f"[QUALITY ALERT] {', '.join(parts)}"
+
+    message = _build_alert_payload(report)
 
     try:
         sns.publish(
@@ -131,4 +157,5 @@ def emit_metrics_and_alert(
         "metrics_key": metrics_key,
         "alert_published": alert_published,
         "sources_over_threshold": report.sources_over_threshold(),
+        "stale_sources": [r.source for r in report.source_reports if not r.freshness_ok],
     }

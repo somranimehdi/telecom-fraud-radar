@@ -190,6 +190,8 @@ outputs:
 quality_gate:
   # Fraction of rows allowed to be quarantined before SNS alert fires.
   quarantine_threshold: 0.05
+  # Example: freshness_max_days_behind: 2 means data from ≤2 days ago passes.
+  freshness_max_days_behind: 30
 
   # S3 prefix for per-run metrics (under the bronze bucket).
   metrics_prefix: "quality_metrics"
