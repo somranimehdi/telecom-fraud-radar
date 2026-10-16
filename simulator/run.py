@@ -200,12 +200,27 @@ def run_simulation(
 
 # ─── CLI Entry Point ────────────────────────────────────────────────────────
 
+# ─── CLI Entry Point ────────────────────────────────────────────────────────
+
 if __name__ == "__main__":
+    from simulator.writers import write_all
+    from simulator.run import load_config
+
     collector, labels, subscribers = run_simulation()
+
+    # ── Hand in-memory events to LocalStack (Kinesis, S3, DynamoDB) ──
+    cfg = load_config("simulator/config.yaml")
+    print()
+    print("─── Uploading to LocalStack ───────────────────")
+    write_summary = write_all(collector, subscribers, cfg)
+    print()
+    print("Upload summary:")
+    import json
+    print(json.dumps(write_summary, indent=2, default=str))
 
     # Print label summary
     from simulator.labels import load_labels
     df = load_labels()
+    print()
     print("Label summary:")
-    import json
     print(json.dumps(label_summary(df), indent=2))

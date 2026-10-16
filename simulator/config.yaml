@@ -184,7 +184,14 @@ paths:
   dynamodb_bundles: "bundle_catalog"
 
 # ─── Write Modes ────────────────────────────────────────────────────────────
+
 outputs:
+  kinesis_batch_size: 500
+  s3_partition_format: year=%Y/month=%m/day=%d
+  write_local_parquet: true
+  write_to_dynamodb: true
+  write_to_kinesis: true
+  write_to_s3: true
 
 # ─── Quality Gate ───────────────────────────────────────────────────────────
 quality_gate:
