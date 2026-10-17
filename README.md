@@ -1,342 +1,335 @@
 # Telecom Fraud Radar
 
-An AWS-first fraud detection pipeline for telecom, running entirely on
-**LocalStack**. No paid cloud account, no credit card — just Docker.
+An AWS-first fraud detection pipeline for telecom, running on **LocalStack**.
 
-> ⚠️ **Honest notice**
-> - **All data is simulated.** No real subscriber, call, revenue, or KYC data
->   is used anywhere in this project. The simulator injects known fraud
->   patterns so the model has labels to learn from.
-> - **Runs on LocalStack**, not real AWS. Resource names, IAM policies, and
->   service configurations are realistic, but they execute locally.
-> - The Kaggle telecom fraud dataset is used only as **secondary validation**;
->   the primary training signal comes from the simulator.
+> **Honest notice**
+> - All data is simulated. No real subscriber, call, revenue, or KYC data is
+>   used. The simulator injects fraud patterns to provide labels.
+> - The services run on LocalStack, not AWS.
+> - Results come from simulated data with injected patterns and are optimistic.
 
----
+<!-- TODO: demo video / GIF and dashboard screenshots go here -->
+
+## Results
+
+The account-level test comparison below uses the same alert budget for rules
+and model. The combined rows use model re-ranking of the rule candidates.
+
+| Method | Accounts flagged | Precision (95% CI) | Recall (95% CI) |
+|---|---:|---:|---:|
+| Rules alone | 236 | 0.1907 (0.1461–0.2335) | 0.7500 (0.6342–0.8741) |
+| Model at rules alert budget | 236 | 0.2373 (0.1814–0.3002) | 0.9333 (0.8543–1.0000) |
+| Rules + model, top quarter | 59 | 0.7458 (0.5470–0.9040) | 0.7333 (0.6171–0.8468) |
+| Ablated model at rules alert budget | 236 | 0.1949 (CI not reported) | 0.7667 (CI not reported) |
+
+The test set contains 3,000 subscriber accounts, including 60 fraud accounts:
+22 SIM-swap takeover, 19 IRSF, 13 subscription-fraud, and 6 bundle-abuse
+accounts. These results and intervals are from the saved synthetic-data
+comparison; see [model vs rules report](docs/reports/model_vs_rules.md).
+
+There is no temporal holdout: training and test subscribers are split within
+the same 30-day window. SIM swap is easy in this simulation because it has a
+planted signal in `hours_since_last_swap`.
 
 ## What It Does
 
-A telco receives events from many systems. Fraud hides across them: SIM swap
-takeovers, international revenue share fraud (IRSF), subscription fraud, and
-bundle abuse. This project ingests those sources, enforces data quality,
-scores accounts, and raises alerts.
-
-**Fraud types covered:**
-- SIM swap takeover
-- International Revenue Share Fraud (IRSF)
-- Subscription fraud
-- Bundle abuse
-
----
+A telecom operator receives events from multiple systems. This project
+validates those data, builds daily subscriber features, scores accounts, and
+writes candidate fraud alerts. The patterns represented are SIM-swap
+takeover, international revenue share fraud (IRSF), subscription fraud, and
+bundle abuse.
 
 ## Architecture
 
+```text
+Synthetic batch sources ───────────────► S3 Bronze ───────┐
+                                                          │
+Synthetic activation / purchase events                    │
+       └──► Kinesis ──► polling consumer ──► S3 Bronze ───┤
+                    scripts/live_ingest.py                 │
+                                                          ▼
+                                             Python quality gate
+                                             ├──► S3 Silver
+                                             ├──► S3 Quarantine
+                                             └──► S3 quality metrics
+                                                   └──► SNS alert
+                                                          │
+S3 Silver ──► Gold account-day features ──► Glue Data Catalog / Athena
+                         │                                │
+                         ├──► rules CLI ──────────────────┤
+                         └──► model training / daily scoring CLI
+                                                          │
+                                       DynamoDB fraud_alerts ◄──┘
+                                             ├──► SNS scoring summary
+                                             └──► Streamlit dashboard
+
+Written but not deployed: activation and purchase Lambda handlers;
+                           scoring Lambda provisioning reference script.
 ```
-Producers              Ingestion                 Storage & Processing           Consumers
-─────────              ─────────                 ─────────────────────          ─────────
-SIM activation  ──►  Kinesis ──► Lambda ──►  S3 raw/activation/  ─┐
-Bundle purchase ──►  Kinesis ──► Lambda ──►  S3 raw/bundles/     ─┤
-Revenue files   ─────────────────────────►   S3 raw/revenue/     ─┼──► Quality gate ──► S3 silver/
-Usage CDRs      ─────────────────────────►   S3 raw/usage/       ─┤        │
-Subscriber ref  ─────────────────────────►   DynamoDB            ─┤        └──► S3 quarantine/
-Bundle catalog  ─────────────────────────►   DynamoDB            ─┘
-                                                                    │
-                                                          Athena ◄──┤
-                                                                    │
-                                                    Rules + Model ◄─┤
-                                                                    ▼
-                                                          DynamoDB fraud_alerts
-                                                                    │
-                                                          SNS fraud-alerts-topic
-                                                                    │
-                                                          Dashboard (static)
-```
+
+The ingestion Lambda handlers exist under `ingest/`, but their deployment is
+not part of this iteration. The live demo reads Kinesis with a polling
+consumer. Scoring runs as the `scoring/score_day.py` CLI and has a Dockerfile;
+it is not a deployed Lambda.
 
 **Medallion layers:**
-- **Bronze** (`raw/`) — immutable raw events and files. The audit trail.
-- **Silver** (`silver/`) — validated, cleaned, deduplicated.
-- **Gold** (`gold/`) — curated Parquet, queryable with Athena.
+- **Bronze** (`raw/`) — raw events and files, treated as immutable by
+  convention; simulator reruns overwrite files with the same keys, and no
+  object lock or versioning is enforced.
+- **Silver** (`silver/`) — validated, cleaned, deduplicated records.
+- **Gold** (`gold/`) — curated Parquet features, queryable with Athena.
 - **Quarantine** (`quarantine/`) — failed rows with a reason column.
-
----
 
 ## Sources
 
-| # | Source | Transport | In first demo |
-|---|---|---|---|
-| 1 | SIM activation | Kinesis → Lambda → S3 | ✅ |
-| 2 | Revenue (prepaid) | S3 batch | ✅ |
-| 3 | Usage (voice + data CDRs) | S3 batch | ✅ |
-| 4 | Bundle catalog | DynamoDB (reference) | ✅ |
-| 5 | Bundle purchases | Kinesis → Lambda → S3 | ✅ |
-| 6 | Bundle usage | S3 batch | 🔜 second iteration |
-| 7 | Churn / customer state | S3 batch | 🔜 second iteration |
-| 8 | Subscriber profile | DynamoDB (reference) | ✅ |
+| # | Source | Transport / status |
+|---|---|---|
+| 1 | SIM activation | Kinesis to polling consumer to S3 in the live demo. Lambda handler is written but not deployed. |
+| 2 | Revenue (prepaid) | Batch files in S3. |
+| 3 | Usage (voice and data CDRs) | Batch files in S3. |
+| 4 | Bundle catalog | DynamoDB reference table. |
+| 5 | Bundle purchases | Kinesis to polling consumer to S3 in the live demo. Lambda handler is written but not deployed. |
+| 6 | Bundle usage | Not implemented. |
+| 7 | Churn / customer state | Not implemented. |
+| 8 | Subscriber profile | DynamoDB reference table. |
 
-The simulator currently generates prepaid revenue only; postpaid revenue is
-not generated yet.
+Postpaid revenue is not generated.
 
----
+## What is implemented and what is not
+
+| Implemented and exercised in local workflows | Not implemented or not deployed |
+|---|---|
+| S3, Kinesis, DynamoDB, SNS, Glue Data Catalog, and Athena through LocalStack workflows. | Lambda deployment; Glue ETL jobs (the gate runs as Python and has a Glue-compatible wrapper); Step Functions and EventBridge. |
+| Python quality gate, simulator, Silver/Gold transforms, rule candidate generation, model training, and CLI scoring. | Postpaid revenue, bundle usage, and churn/customer-state inputs. |
+| Streamlit dashboard and polling-based Kinesis live-demo consumer. | PII hashing, IAM least privilege, and S3 retention policies. |
 
 ## Data Quality Gate
 
-The gate applies these checks per source:
-- **Schema** — every row matches its Pydantic contract (`contracts/`).
-- **Duplicates** — no repeated `event_id` / `transaction_id` / `call_id`.
-- **Ranges** — non-negative amounts and durations, no future timestamps.
-
-It also checks referential integrity against the subscriber and bundle
-reference tables, and alerts when the newest S3 partition is stale.
-
-Failed rows are written to `quarantine/` with a `reason` column. Quarantine
-rate above a threshold publishes to SNS.
-
----
+The Python gate checks source schemas, duplicate IDs, ranges, referential
+integrity against subscriber and bundle reference tables, and source
+freshness. It writes failed rows to `quarantine/` with a reason and writes run
+metrics to S3. The code publishes an SNS alert when any source's quarantine
+rate exceeds its configured threshold **or** any source is stale. SNS
+publishing is best-effort: failures are logged and do not stop the gate. The
+saved quality snapshot has no sources over threshold and does not demonstrate
+an SNS alert; alert delivery has not yet been verified end-to-end in a test
+run.
 
 ## Data Governance
 
-This project includes governance controls by design:
+The project includes data contracts, quality checks, lineage across Bronze,
+Silver, and Gold, and quarantine reasons. LocalStack persistence is enabled
+in `docker-compose.yml`.
 
-- **Quality gate** — schema, uniqueness, and range enforcement.
-- **Data contracts** — Pydantic schemas in `contracts/` define every source.
-- **Lineage** — bronze → silver → gold; bronze is immutable.
-- **Quarantine with reasons** — no silent data loss.
-- **Persistence** — LocalStack runs with `PERSISTENCE=1`; state survives restarts.
-
-**Not implemented (and documented as such):**
-- IAM least-privilege roles (root is used for simplicity).
-- S3 lifecycle/retention policies.
-- PII hashing at ingestion (`msisdn`, `imsi` stored in the clear).
-- Data catalog with ownership tags.
-
-These are called out honestly so the gap is visible, not hidden.
-
----
+Not implemented:
+- IAM least-privilege roles.
+- S3 lifecycle or retention policies.
+- PII hashing at ingestion (`msisdn` and `imsi` are stored in clear text).
+- Data catalog ownership tags.
 
 ## Stack
 
-| Layer | Tool |
+| Layer | Tools used by the project |
 |---|---|
-| Cloud emulation | LocalStack (Pro, Student plan) |
-| Container runtime | Docker + Docker Compose |
-| Language | Python 3.13 |
-| Contracts | Pydantic v2 |
-| Dataframes | Polars |
-| ML | scikit-learn, XGBoost |
+| Cloud emulation and containers | LocalStack, Docker, Docker Compose |
+| Language and contracts | Python, Pydantic |
+| Data and file formats | Polars, PyArrow |
+| AWS clients | boto3, awslocal |
+| Machine learning and artifacts | scikit-learn, joblib |
+| Dashboard | Streamlit |
 | Tests | pytest |
-| Infrastructure | `docker-compose.yml` + `make` |
-
----
+| Configuration | PyYAML |
 
 ## Repository Layout
 
-```
+```text
 telecom-fraud-radar/
-├── contracts/          Pydantic schemas for every source
-├── dashboard/          Static metrics export + web UI
-├── infra/              LocalStack provisioning scripts
-├── model/              Training scripts + feature engineering
-├── quality_gate/       Validation engine + Glue-compatible wrapper
-├── scoring/            Rules engine + Lambda scoring + model inference
-├── simulator/          Data generators (streaming + batch)
-├── transform/          Silver/Gold transforms + Athena DDLs
-├── docker-compose.yml  LocalStack container definition
-├── Makefile            One-command workflows
-├── requirements.txt    Python dependencies
-└── README.md           This file
+├── contracts/          Source data contracts
+├── dashboard/          Streamlit app and JSON export
+├── docs/reports/       Copied evaluation reports
+├── evaluation/         Rules baseline and model comparison
+├── infra/              LocalStack provisioning and reference scripts
+├── ingest/              Activation and purchase Lambda handlers
+├── model/               Features, training, metrics, model publication
+├── quality_gate/        Python validation, quarantine, metrics, Glue wrapper
+├── scoring/             Rules and daily model scoring CLI
+├── scripts/             Live producer, polling consumer, loop, utilities
+├── simulator/           Synthetic batch and streaming data generators
+├── tests/               Unit and behavior tests
+├── transform/            Silver/Gold transforms and Athena assets
+├── docker-compose.yml
+├── Makefile
+└── requirements.txt
 ```
-
----
 
 ## Prerequisites
 
-- Docker Engine + Docker Compose
-- Python 3.13 (system or via `python3.13`)
-- `make`
-- A LocalStack auth token (Student plan). Set it in `.env` as
-  `LOCALSTACK_AUTH_TOKEN=...` — see `.env.example` if you're cloning this.
-
-Running the LocalStack pipeline requires a valid LocalStack auth token in
-`.env`.
-
----
+- Docker Engine and Docker Compose
+- Python and `make`
+- A LocalStack auth token configured as `LOCALSTACK_AUTH_TOKEN` in `.env`
+  (see `.env.example`)
 
 ## Quick Start
 
+`make simulate` runs `python -m simulator.run` with no extra arguments; it
+does not pass `--end-yesterday` or `--defect-rate`. For a run ending
+relative to the current date, use the direct command below. The full
+10,000-subscriber, 30-day generation run recorded peak RSS of 1.91 GB.
+
 ```bash
-# 1. Configure your LocalStack token
 cp .env.example .env
-# edit .env and paste your LOCALSTACK_AUTH_TOKEN
+# Set LOCALSTACK_AUTH_TOKEN in .env
 
-# 2. Launch LocalStack
 make up
-
-# 3. Provision infrastructure (S3, DynamoDB, Kinesis, SNS)
 make infra
-
-# 4. Run the simulator (Week 2 onwards)
-make simulate
-
-# 5. Validate source data and produce Silver/Quarantine
+python -m simulator.run --end-yesterday
 make quality
-
-# 6. Build Gold, set up Athena, and write rule candidates
 make week4
-
-# 7. Run an investigation query
-make athena-query SQL=transform/athena/investigations/sim_swap_24h.sql
-
-# 8. Tear down
-make destroy
+make train-table
+make train
+make publish-model
+make score-day DATE=YYYY-MM-DD
+make dashboard
 ```
 
----
+For the live demo, start these in separate terminals after infrastructure is
+available:
+
+```bash
+make live-producer
+make live-ingest
+make live-loop
+make dashboard
+```
+
+`make live-demo-help` prints the terminal setup. The first Athena startup can
+take many minutes while LocalStack initializes its engine.
 
 ## Build Progress
 
-- [x] **Day 1** — Environment, infrastructure, contracts
-- [x] **Week 2** — Simulator + bronze ingestion
-- [x] **Week 3** — Quality gate + silver
-- [x] **Week 4** — Gold, Athena, rules engine
-- [x] **Week 5** — Model training + scoring (Lambda deployment plan-gated)
-- [x] **Week 6** — Dashboard, live demo, polish
-
----
+- [x] Foundations, LocalStack infrastructure, and contracts
+- [x] Synthetic simulator and Bronze ingestion
+- [x] Quality gate and Silver layer
+- [x] Gold, Athena investigations, and rule candidates
+- [x] Model training, publication, and CLI scoring
+- [x] Dashboard and live-demo scripts
 
 ## What's Simulated (And How Honestly)
 
-The simulator (Week 2) generates data with **structured randomness**:
+The simulator generates synthetic data with structured randomness.
 
-The default configuration simulates **10,000 subscribers over 30 days**.
-The small configuration simulates **500 subscribers over 5 days** for quick
-tests. Both use simulated data with injected fraud patterns.
+- Realistic distributions include log-normal amounts, Poisson event rates,
+  and weekday/hour seasonality.
+- Legitimate and fraud distributions overlap for most fraud types.
+- Fraud patterns are probabilistic; a SIM swap does not always lead to IRSF.
+- Hard cases include legitimate users who resemble fraud and fraud users who
+  resemble legitimate behavior.
 
-- Realistic distributions (log-normal amounts, Poisson event rates, weekday/
-  hour seasonality).
-- **Overlapping** legit and fraud distributions — no single feature separates
-  the classes.
-- Probabilistic fraud patterns — a SIM swap doesn't *always* lead to IRSF.
-- Deliberate hard cases — legit users who look like fraud, fraud users who
-  look legit.
-
-This prevents the model from memorizing a single-feature shortcut. If any
-feature correlates > 0.7 with `is_fraud`, the simulator is considered too
-easy and is retuned.
-
-
-
-
----
-
+The shortcut audit found `hours_since_last_swap` has direction-independent
+AUC 0.9995 for SIM-swap takeover. The simulator plants the SIM swap on the day
+that fraud starts, creating this near-perfect signal. For IRSF, the best
+single feature, `high_risk_destination_call_count_7d_sum`, has AUC 0.7145.
+An ablation without the swap-related features is reported. See the
+[shortcut check](docs/reports/shortcut_check.md) and
+[model comparison](docs/reports/model_vs_rules.md).
 
 ### Why a simulator?
 
-The simulator is not a shortcut — it's the standard way to prototype a
-pipeline without access to real telco data. Real subscriber CDRs, KYC
-records, and revenue files are private and regulated. The simulator
-generates realistic distributions (log-normal, Poisson, seasonality) with
-deliberate overlap between legit and fraud, so the model has a
-non-trivial learning problem. The pipeline itself — ingestion, quality,
-transformations, scoring, alerting — is the deliverable and would run
-unchanged on real AWS with real data.
-
-
----
+Real subscriber CDRs, KYC records, and revenue files are private and
+regulated. Synthetic data allows pipeline development without access to
+those records. The simulator and its injected patterns do not establish
+performance on real telecom data.
 
 ## Week 4: Gold, Athena, and Rules
 
-Run `make week4` after Bronze has been validated into Silver. It builds
-`gold/account_daily_features/` (one subscriber-day row, with source IDs
-deduplicated across repeated quality-gate runs), exports DynamoDB subscriber
-and bundle snapshots to `gold/reference/`, creates Glue database
-`telecom_fraud_radar` and Athena workgroup `fraud-radar-workgroup`, registers
-external tables and discovered S3 partitions, then upserts candidate alerts
-into DynamoDB table `fraud_alerts` (key `alert_id`, GSI `subscriber-index`).
+`make week4` builds Gold account-day features, exports subscriber and bundle
+reference snapshots, creates Glue Data Catalog and Athena metadata, registers
+S3 partitions, runs rule generation, and upserts candidate alerts into
+DynamoDB `fraud_alerts`. The full-run baseline flags 8.12% of subscribers.
+The saved rules report records 1,046 `IRSF_HIGH_RISK_BURST` alerts, 96
+`NEW_ACCOUNT_HIGH_VALUE_PURCHASE` alerts, 19 `REPEATED_BUNDLE_PURCHASES`
+alerts, and 67 `SIM_SWAP_INTL_24H` alerts. See the
+[full-run rules baseline](docs/reports/rules_baseline.md).
 
-Week 4 was completed and run end to end in LocalStack. All eight external
-tables were created and their S3 partitions registered. The four saved
-investigation queries were executed successfully, and the rules workflow
-upserted 26 candidate alerts to `fraud_alerts`. Rerun the full workflow with
-`make week4`.
+Use `make athena-query SQL=<file>` to run an investigation from
+`transform/athena/investigations/`. The rules cover SIM swap followed by
+international calls within 24 hours, high-risk destination call bursts,
+high-value purchases on young or non-verified accounts without a completed
+payment in the prior 7 days, and repeated purchases of one bundle within
+24 hours.
 
-Saved investigation SQL is in `transform/athena/investigations/`. Use
-`make athena-query SQL=<file>` to run one query. Rules cover a SIM swap
-followed by international calls within 24 hours, high-risk destination call
-bursts, high-value purchases on young or non-verified accounts without a
-completed payment in the prior seven days, and repeat purchases of one bundle
-within 24 hours.
-
-**Bundle abuse limitation:** bundle-usage source 6 is deferred, so the
-repeat-purchase rule is only a bundle-abuse proxy. The project does not claim
-to detect allowance over-consumption yet.
+Bundle usage is not available, so repeated bundle purchases are a proxy; the
+project does not measure consumption beyond an allowance.
 
 ## Week 5: Model and Scoring
 
-**Model.** An XGBoost binary classifier (`HistGradientBoostingClassifier`)
-trained on 30 days of `gold/model_features/` across 10,000 simulated
-subscribers. Model artifact, feature columns, and evaluation metrics are
-published to `s3://telco-fraud-bronze/models/fraud_gbm/v1/`. Evaluation
-metrics include per-archetype ROC-AUC and PR-AUC, GroupKFold cross-
-validation, and a rules-only vs model vs combined comparison — see
-`model/out/model_metrics.json` and `evaluation/out/model_vs_rules.md`.
+**Model.** The model is scikit-learn's `HistGradientBoostingClassifier`,
+trained on subscriber-day features. The training table excludes label and
+split fields from the model inputs and splits by subscriber. Artifacts and
+feature-only daily data are published to S3 under
+`s3://telco-fraud-bronze/models/fraud_gbm/v1/`.
 
-Known limitation: bundle abuse detection is weak (PR-AUC 0.022 on
-6 test positives) because bundle-usage source 6 is deferred. The model
-detects SIM swap takeover (PR-AUC 0.80), subscription fraud (PR-AUC 0.67),
-and IRSF (PR-AUC 0.29) well enough to be useful; bundle abuse is a proxy.
+Main-model test PR-AUC by archetype: SIM-swap takeover 0.8009, IRSF 0.2889,
+subscription fraud 0.6666, and bundle abuse 0.0220. Ablated-model test PR-AUC:
+SIM-swap takeover 0.1033, IRSF 0.4807, subscription fraud 0.8206, and bundle
+abuse 0.1065. IRSF is the harder case and bundle-abuse results are weak. The
+bundle-abuse test has 6 positive accounts, and bundle-usage data (source 6)
+is not available. See the
+[model vs rules report](docs/reports/model_vs_rules.md).
 
-**Scoring.** `scoring/score_day.py` scores one day of Gold features and
-writes idempotent `MODEL_GBM_V1` alerts to DynamoDB `fraud_alerts`, capped
-at 100 per day by score. Alerts are `HIGH` severity when corroborated by
-a rule alert on the same day, `MEDIUM` otherwise. An SNS summary is
-published to `fraud-alerts-topic` per run. Invoke with
-`make score-day DATE=YYYY-MM-DD` or `python -m scoring.score_day --date
-YYYY-MM-DD [--dry-run]`.
+**Scoring.** `scoring/score_day.py` is a CLI that scores one date of daily
+features, writes up to 100 model alerts for that date to DynamoDB
+`fraud_alerts`, and publishes an SNS summary when alerts exist. Alerts are
+HIGH when corroborated by a rule alert on the same date and MEDIUM otherwise.
+Run `make score-day DATE=YYYY-MM-DD` or
+`python -m scoring.score_day --date YYYY-MM-DD [--dry-run]`.
 
-The scoring module is containerized (`scoring/Dockerfile`, verified Docker
-build), but Lambda deployment is out of scope for this iteration because
-ECR is plan-gated in LocalStack's Student plan. The provision script in
-`infra/provision_scoring_lambda.sh` documents the intended deployment
-path and is retained as a reference for a Team-plan LocalStack instance.
+Scoring runs as a CLI and a Docker image; Lambda deployment is not part of
+this iteration. `infra/provision_scoring_lambda.sh` is a reference script and
+has not been run end-to-end.
 
 ## Week 6: Dashboard and Live Demo
 
-**Streamlit dashboard.** `dashboard/app.py` reads live state from DynamoDB
-`fraud_alerts` and the latest quality-gate run, and renders total alerts,
-quarantine rate, model alerts today, alert-type and quarantine-rate charts,
-top-10 scored accounts, recent alerts, and an honest limitations panel.
-Launch with `make dashboard`.
+The Streamlit dashboard reads alert data from DynamoDB and the latest quality
+gate metrics. It shows alert totals, quarantine rate, model alerts for the
+day, alert-type and quarantine-rate charts, top scored accounts, recent
+alerts, and limitations. Start it with `make dashboard`.
 
-**Live demo.** Three scripts simulate near-real-time ingestion without
-requiring Lambda deployment (ECR is plan-gated on LocalStack Student):
-- `make live-producer` streams activation and purchase events into Kinesis
-  at 5 events/sec (`scripts/live_producer.py`).
-- `make live-ingest` polls Kinesis and writes batches to Bronze S3,
-  simulating what the Lambda consumer would do in production
-  (`scripts/live_ingest.py`).
-- `make live-loop` runs the quality gate and daily scoring every 60 seconds
-  so new quality results and alerts can appear in the dashboard
-  (`scripts/live_loop.sh`).
+The live producer sends synthetic activation and purchase records into
+Kinesis. `scripts/live_ingest.py` polls those streams and writes batches to
+Bronze S3. The quality gate and scoring run in a repeated 60-second loop in
+the demo. Events reach Bronze in near-real-time via Kinesis; Silver refreshes
+on the demo's 60-second loop; the model scores daily aggregate features in
+batch. This is not real-time fraud detection. The live loop does not rebuild
+the published daily model-feature partitions from each ingest batch.
 
-**What this is and isn't.** Events are produced in real time and land in
-Bronze S3 in near-real-time. Silver is a batch layer: the quality gate runs
-every 60 seconds and processes available Bronze data. Gold model-feature
-partitions remain the published daily snapshot; `live-loop` does not rebuild
-them from each ingest batch. Scoring therefore uses daily aggregate features,
-not per-event features, which fits low-velocity telecom fraud such as SIM
-swap and subscription fraud. Production-grade event-driven scoring would
-require a different model on CDR-level features and a feature store; that's
-out of scope for this iteration.
+## Limitations
 
-Run `make live-demo-help` for the 4-terminal demo setup.
+- Data and labels are simulated; results with injected patterns are
+  optimistic and do not establish real-world performance.
+- SIM-swap labels have a circular planted signal: the swap is placed on the
+  fraud start day and `hours_since_last_swap` is near-perfectly informative.
+- Fraud counts are small, especially for bundle abuse (6 test accounts), and
+  reported confidence intervals are wide.
+- There is no temporal holdout; train and test are from the same 30-day
+  window.
+- Rules have not been calibrated against real operational data; the IRSF and
+  new-account purchase rules have low precision in the saved evaluation.
+- Rule alerts are candidates for review. They do not block accounts.
+- `risk_score_baseline` has an apparent scale mismatch: the shortcut report's
+  subscriber-level means are around 1,173–1,426, while the profile contract
+  constrains the value to the 0–1 range. This needs an audit.
+- Bundle abuse uses repeated purchases as a proxy because bundle-usage data
+  is unavailable.
+- PII hashing, least-privilege IAM, retention controls, and data-catalog
+  ownership tags are not implemented.
 
 ## Rules baseline
 
-Run `make eval-rules` to evaluate alerts in `fraud_alerts` against the
-simulator labels. The report is written to
-[`evaluation/out/rules_baseline.md`](evaluation/out/rules_baseline.md).
-Results come from simulated data with injected patterns, so they are
-optimistic and should not be treated as expected real-world performance.
+The saved full-run evaluation is linked above at
+[docs/reports/rules_baseline.md](docs/reports/rules_baseline.md). Results come
+from simulated data with injected patterns and should not be treated as
+expected real-world performance.
 
 ## License
 
