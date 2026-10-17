@@ -1,0 +1,350 @@
+{
+  "model": "HistGradientBoostingClassifier",
+  "parameters": {
+    "random_state": 42,
+    "max_depth": 5,
+    "learning_rate": 0.08,
+    "max_iter": 250,
+    "l2_regularization": 1.0
+  },
+  "dropped_constant_features": [
+    "failed_payment_count"
+  ],
+  "feature_columns": [
+    "call_count",
+    "night_call_count",
+    "intl_call_count",
+    "high_risk_destination_call_count",
+    "distinct_destination_countries",
+    "short_call_count",
+    "total_duration_sec",
+    "avg_call_duration",
+    "total_cost",
+    "max_calls_in_any_hour",
+    "session_count",
+    "bytes",
+    "cost",
+    "transaction_count",
+    "net_amount",
+    "purchase_count",
+    "spend",
+    "distinct_bundles",
+    "activation_event_count",
+    "sim_swap_count",
+    "hours_since_last_swap",
+    "account_age_days",
+    "kyc_status",
+    "lines_per_identity",
+    "risk_score_baseline",
+    "segment",
+    "intl_call_count_3d_sum",
+    "intl_call_count_7d_sum",
+    "high_risk_destination_call_count_3d_sum",
+    "high_risk_destination_call_count_7d_sum",
+    "total_cost_3d_sum",
+    "total_cost_7d_sum",
+    "purchase_count_3d_sum",
+    "purchase_count_7d_sum",
+    "total_cost_to_prior_7d_avg_ratio"
+  ],
+  "train_groupkfold_pr_auc": [
+    0.593928404287666,
+    0.6071681828038922,
+    0.5009423304285617
+  ],
+  "ablation_groupkfold_pr_auc": [
+    0.3922365424414748,
+    0.3770345254756308,
+    0.3855533861959098
+  ],
+  "row_level_test": {
+    "roc_auc": 0.9003658448122812,
+    "pr_auc": 0.69029158439116,
+    "per_archetype": {
+      "sim_swap_takeover": {
+        "positive_subscribers": 22,
+        "roc_auc": 0.9440200760438856,
+        "pr_auc": 0.8009236658997253
+      },
+      "irsf": {
+        "positive_subscribers": 19,
+        "roc_auc": 0.8092149948782603,
+        "pr_auc": 0.2889208515480325
+      },
+      "subscription_fraud": {
+        "positive_subscribers": 13,
+        "roc_auc": 0.9900084033613445,
+        "pr_auc": 0.6666428048870249
+      },
+      "bundle_abuse": {
+        "positive_subscribers": 6,
+        "roc_auc": 0.6865367965367966,
+        "pr_auc": 0.022005850421074342
+      }
+    }
+  },
+  "account_test": {
+    "rules": {
+      "flagged": 236,
+      "true_positives": 45,
+      "precision": 0.1906779661016949,
+      "recall": 0.75
+    },
+    "rules_per_archetype": {
+      "sim_swap_takeover": 0.8181818181818182,
+      "irsf": 0.8947368421052632,
+      "subscription_fraud": 0.46153846153846156,
+      "bundle_abuse": 0.6666666666666666
+    },
+    "model": {
+      "flagged": 236,
+      "true_positives": 56,
+      "precision": 0.23728813559322035,
+      "recall": 0.9333333333333333
+    },
+    "model_per_archetype": {
+      "sim_swap_takeover": 0.9090909090909091,
+      "irsf": 0.9473684210526315,
+      "subscription_fraud": 1.0,
+      "bundle_abuse": 0.8333333333333334
+    },
+    "combined": {
+      "25": {
+        "flagged": 59,
+        "true_positives": 44,
+        "precision": 0.7457627118644068,
+        "recall": 0.7333333333333333
+      },
+      "50": {
+        "flagged": 118,
+        "true_positives": 44,
+        "precision": 0.3728813559322034,
+        "recall": 0.7333333333333333
+      }
+    },
+    "per_rule": [
+      {
+        "rule_id": "IRSF_HIGH_RISK_BURST",
+        "flagged": 196,
+        "true_positives": 28,
+        "precision": 0.08673469387755102,
+        "recall": 0.4666666666666667,
+        "any_fraud_precision": 0.14285714285714285
+      },
+      {
+        "rule_id": "NEW_ACCOUNT_HIGH_VALUE_PURCHASE",
+        "flagged": 23,
+        "true_positives": 1,
+        "precision": 0.043478260869565216,
+        "recall": 0.016666666666666666,
+        "any_fraud_precision": 0.043478260869565216
+      },
+      {
+        "rule_id": "REPEATED_BUNDLE_PURCHASES",
+        "flagged": 5,
+        "true_positives": 4,
+        "precision": 0.8,
+        "recall": 0.06666666666666667,
+        "any_fraud_precision": 0.8
+      },
+      {
+        "rule_id": "SIM_SWAP_INTL_24H",
+        "flagged": 21,
+        "true_positives": 18,
+        "precision": 0.8571428571428571,
+        "recall": 0.3,
+        "any_fraud_precision": 0.8571428571428571
+      }
+    ],
+    "precision_at_pct": {
+      "1": {
+        "flagged": 30,
+        "true_positives": 28,
+        "precision": 0.9333333333333333,
+        "recall": 0.4666666666666667
+      },
+      "2": {
+        "flagged": 60,
+        "true_positives": 51,
+        "precision": 0.85,
+        "recall": 0.85
+      },
+      "5": {
+        "flagged": 150,
+        "true_positives": 55,
+        "precision": 0.36666666666666664,
+        "recall": 0.9166666666666666
+      }
+    }
+  },
+  "ablation_account_test": {
+    "rules": {
+      "flagged": 236,
+      "true_positives": 45,
+      "precision": 0.1906779661016949,
+      "recall": 0.75
+    },
+    "rules_per_archetype": {
+      "sim_swap_takeover": 0.8181818181818182,
+      "irsf": 0.8947368421052632,
+      "subscription_fraud": 0.46153846153846156,
+      "bundle_abuse": 0.6666666666666666
+    },
+    "model": {
+      "flagged": 236,
+      "true_positives": 46,
+      "precision": 0.19491525423728814,
+      "recall": 0.7666666666666667
+    },
+    "model_per_archetype": {
+      "sim_swap_takeover": 0.45454545454545453,
+      "irsf": 1.0,
+      "subscription_fraud": 1.0,
+      "bundle_abuse": 0.6666666666666666
+    },
+    "combined": {
+      "25": {
+        "flagged": 59,
+        "true_positives": 36,
+        "precision": 0.6101694915254238,
+        "recall": 0.6
+      },
+      "50": {
+        "flagged": 118,
+        "true_positives": 41,
+        "precision": 0.3474576271186441,
+        "recall": 0.6833333333333333
+      }
+    },
+    "per_rule": [
+      {
+        "rule_id": "IRSF_HIGH_RISK_BURST",
+        "flagged": 196,
+        "true_positives": 28,
+        "precision": 0.08673469387755102,
+        "recall": 0.4666666666666667,
+        "any_fraud_precision": 0.14285714285714285
+      },
+      {
+        "rule_id": "NEW_ACCOUNT_HIGH_VALUE_PURCHASE",
+        "flagged": 23,
+        "true_positives": 1,
+        "precision": 0.043478260869565216,
+        "recall": 0.016666666666666666,
+        "any_fraud_precision": 0.043478260869565216
+      },
+      {
+        "rule_id": "REPEATED_BUNDLE_PURCHASES",
+        "flagged": 5,
+        "true_positives": 4,
+        "precision": 0.8,
+        "recall": 0.06666666666666667,
+        "any_fraud_precision": 0.8
+      },
+      {
+        "rule_id": "SIM_SWAP_INTL_24H",
+        "flagged": 21,
+        "true_positives": 18,
+        "precision": 0.8571428571428571,
+        "recall": 0.3,
+        "any_fraud_precision": 0.8571428571428571
+      }
+    ],
+    "precision_at_pct": {
+      "1": {
+        "flagged": 30,
+        "true_positives": 29,
+        "precision": 0.9666666666666667,
+        "recall": 0.48333333333333334
+      },
+      "2": {
+        "flagged": 60,
+        "true_positives": 44,
+        "precision": 0.7333333333333333,
+        "recall": 0.7333333333333333
+      },
+      "5": {
+        "flagged": 150,
+        "true_positives": 46,
+        "precision": 0.30666666666666664,
+        "recall": 0.7666666666666667
+      }
+    }
+  },
+  "bootstrap_95_ci": {
+    "rules_precision": [
+      0.1419639328063241,
+      0.24593749999999998
+    ],
+    "rules_recall": [
+      0.6386023176936123,
+      0.858314732142857
+    ],
+    "model_precision": [
+      0.17997710204800565,
+      0.30127552575434313
+    ],
+    "model_recall": [
+      0.8601765489673551,
+      0.9838709677419355
+    ],
+    "combined25_precision": [
+      0.5423497267759563,
+      0.9187268640930724
+    ],
+    "combined25_recall": [
+      0.6191657077100114,
+      0.846535966981132
+    ],
+    "combined50_precision": [
+      0.2765489130434783,
+      0.4838802083333333
+    ],
+    "combined50_recall": [
+      0.6204470938897169,
+      0.8501103974307507
+    ]
+  },
+  "permutation_importance_top10": [
+    {
+      "feature": "hours_since_last_swap",
+      "mean_ap_decrease": 0.5207156784253687
+    },
+    {
+      "feature": "high_risk_destination_call_count_7d_sum",
+      "mean_ap_decrease": 0.2892846534489157
+    },
+    {
+      "feature": "session_count",
+      "mean_ap_decrease": 0.1765387882996126
+    },
+    {
+      "feature": "total_cost_7d_sum",
+      "mean_ap_decrease": 0.16637445691235417
+    },
+    {
+      "feature": "lines_per_identity",
+      "mean_ap_decrease": 0.0805027082621786
+    },
+    {
+      "feature": "total_cost_3d_sum",
+      "mean_ap_decrease": 0.05037011963441825
+    },
+    {
+      "feature": "purchase_count_7d_sum",
+      "mean_ap_decrease": 0.02677182594660295
+    },
+    {
+      "feature": "night_call_count",
+      "mean_ap_decrease": 0.01943256044209089
+    },
+    {
+      "feature": "cost",
+      "mean_ap_decrease": 0.016881360834514414
+    },
+    {
+      "feature": "intl_call_count",
+      "mean_ap_decrease": 0.016168840220094755
+    }
+  ]
+}

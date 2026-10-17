@@ -1,0 +1,19 @@
+.venv/bin/python -m model.build_training_table --config simulator/out/config.used.yaml
+Origin date: 2026-09-17 (SIM_SWAP match rate: 100.0%)
+Rows: 300,000; positives: 3,010; positive rate: 1.0033%
+  train: 210,000 rows; positives 2,023; positive rate 0.9633%
+  test: 90,000 rows; positives 987; positive rate 1.0967%
+Fraud subscribers by archetype:
+  train sim_swap_takeover: 50
+  train irsf: 44
+  train subscription_fraud: 31
+  train bundle_abuse: 15
+  test sim_swap_takeover: 22
+  test irsf: 19
+  test subscription_fraud: 13
+  test bundle_abuse: 6
+Features: 36; profile columns used: ['account_age_days', 'kyc_status', 'lines_per_identity', 'risk_score_baseline', 'segment']
+  Suspicious profile column(s) to audit for label-derived risk: ['risk_score_baseline']
+  Excluded profile identifiers/operations: msisdn, imsi, last_updated; subscriber_id is metadata.
+Skipped features: none
+Wrote model/out/training_table.parquet and model/out/feature_columns.json

@@ -25,7 +25,7 @@ SNS_TOPIC   := fraud-alerts-topic
 KINESIS_1   := sim-activation-stream
 KINESIS_2   := bundle-purchases-stream
 
-.PHONY: help up down destroy infra test simulate logs shell health clean quality quality-quiet quality-one gold athena athena-query rules eval-rules train-table week4
+.PHONY: help up down destroy infra test simulate logs shell health clean quality quality-quiet quality-one gold athena athena-query rules eval-rules train-table shortcut-check train week4
 
 help:
 	@echo "Telecom Fraud Radar — available targets:"
@@ -46,6 +46,8 @@ help:
 	@echo "  make rules       Write rule candidate alerts to DynamoDB"
 	@echo "  make eval-rules  Evaluate fraud_alerts against simulator labels"
 	@echo "  make train-table Build the subscriber-day model training table"
+	@echo "  make shortcut-check Check model features for label shortcuts"
+	@echo "  make train       Train and evaluate the Week 5 model"
 	@echo "  make week4       Run the complete Week 4 build"
 	@echo "  make clean      Remove Python caches"
 
@@ -164,6 +166,12 @@ eval-rules:
 
 train-table:
 	$(PY) -m model.build_training_table --config simulator/out/config.used.yaml
+
+shortcut-check:
+	$(PY) -m model.shortcut_check
+
+train:
+	$(PY) -m model.train
 
 week4: rules
 	@echo "✅ Week 4 Gold, Athena, and rule candidates are ready."
