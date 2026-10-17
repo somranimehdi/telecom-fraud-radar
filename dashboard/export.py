@@ -52,6 +52,7 @@ def _alert_view(item: dict) -> dict:
         "alert_id": str(item.get("alert_id", "")),
         "subscriber_id": str(item.get("subscriber_id", "")),
         "rule_id": str(item.get("rule_id", "")),
+        "fraud_type": str(item.get("fraud_type", "UNSPECIFIED")),
         "score": float(item["score"]) if item.get("score") is not None else None,
         "severity": str(item.get("severity", "UNKNOWN")),
         "event_timestamp": str(item.get("event_timestamp", "")),
@@ -93,14 +94,20 @@ def export(output_dir: Path = Path("dashboard"), dynamodb=None, s3=None) -> tupl
     raw_alerts = _scan_alerts(dynamodb.Table("fraud_alerts"))
     alerts = [_alert_view(item) for item in raw_alerts]
     now = datetime.now(timezone.utc)
-    counts_by_rule: dict[str, int] = {}
+    counts_by_source: dict[str, int] = {}
+    counts_by_fraud_type: dict[str, int] = {}
     counts_by_severity: dict[str, int] = {}
     counts_by_status: dict[str, int] = {}
     counts_by_date: dict[str, int] = {}
     cutoff = (now.date() - timedelta(days=29)).isoformat()
     for alert in alerts:
+        source = "Model" if alert["rule_id"] == "MODEL_GBM_V1" else "Rules"
+        fraud_type = alert["fraud_type"]
+        if fraud_type == "UNSPECIFIED" and source == "Model":
+            fraud_type = "Suspected Fraud (Model)"
         for mapping, key in (
-            (counts_by_rule, alert["rule_id"]),
+            (counts_by_source, source),
+            (counts_by_fraud_type, fraud_type),
             (counts_by_severity, alert["severity"]),
             (counts_by_status, alert["status"]),
         ):
@@ -109,8 +116,28 @@ def export(output_dir: Path = Path("dashboard"), dynamodb=None, s3=None) -> tupl
         if day and cutoff <= day <= now.date().isoformat():
             counts_by_date[day] = counts_by_date.get(day, 0) + 1
 
-    score_sorted = sorted(alerts, key=lambda row: row["score"] if row["score"] is not None else float("-inf"), reverse=True)
-    recent_sorted = sorted(alerts, key=lambda row: row["created_at"], reverse=True)
+    by_score = lambda row: row["score"] if row["score"] is not None else float("-inf")
+    alerts_by_rule_id: dict[str, list[dict]] = {}
+    for row in alerts:
+        alerts_by_rule_id.setdefault(row["rule_id"], []).append(row)
+    score_sorted = sorted(
+        [
+            row
+            for rows in alerts_by_rule_id.values()
+            for row in sorted(rows, key=by_score, reverse=True)[:10]
+        ],
+        key=by_score,
+        reverse=True,
+    )
+    recent_sorted = sorted(
+        [
+            row
+            for rows in alerts_by_rule_id.values()
+            for row in sorted(rows, key=lambda item: item["created_at"], reverse=True)[:10]
+        ],
+        key=lambda row: row["created_at"],
+        reverse=True,
+    )
     alert_payload = {
         "generated_at": now.isoformat(),
         "total_alerts": len(alerts),
@@ -118,12 +145,16 @@ def export(output_dir: Path = Path("dashboard"), dynamodb=None, s3=None) -> tupl
             row["rule_id"] == "MODEL_GBM_V1" and row["event_timestamp"][:10] == now.date().isoformat()
             for row in alerts
         ),
-        "by_rule_id": counts_by_rule,
+        "by_alert_source": counts_by_source,
+        "by_fraud_type": counts_by_fraud_type,
         "by_severity": counts_by_severity,
         "by_status": counts_by_status,
         "by_event_date": dict(sorted(counts_by_date.items())),
-        "top_10_by_score": score_sorted[:10],
-        "recent_alerts": recent_sorted[:50],
+        # Keep up to ten per rule so the UI's Rules Only filter is not
+        # starved by a globally higher-scoring model cohort.
+        "top_10_by_score": score_sorted,
+        # Same rule-balanced sampling for the Recent table filter.
+        "recent_alerts": recent_sorted,
     }
 
     try:

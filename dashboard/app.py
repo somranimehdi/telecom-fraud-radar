@@ -33,6 +33,49 @@ def _stale(data: dict) -> bool:
         return True
 
 
+def _display_fraud_type(alert: dict) -> str:
+    fraud_type = str(alert.get("fraud_type", "UNSPECIFIED"))
+    if fraud_type == "UNSPECIFIED" and alert.get("rule_id") == "MODEL_GBM_V1":
+        return "Suspected Fraud (Model)"
+    return fraud_type
+
+
+def _format_timestamp(value) -> str:
+    if value is None or value == "":
+        return ""
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return parsed.strftime("%Y-%m-%d %H:%M:%S")
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _filter_alert_rows(rows: list[dict], selection: str) -> list[dict]:
+    if selection == "Model Only (MODEL_GBM_V1)":
+        return [row for row in rows if row.get("rule_id") == "MODEL_GBM_V1"]
+    if selection == "Rules Only":
+        return [row for row in rows if row.get("rule_id") != "MODEL_GBM_V1"]
+    return rows
+
+
+def _display_frame(rows: list[dict]) -> pd.DataFrame:
+    frame = pd.DataFrame(rows)
+    if frame.empty:
+        return frame
+    if "fraud_type" in frame.columns:
+        frame["fraud_type"] = [
+            _display_fraud_type(row) for row in rows
+        ]
+    for column in ("created_at", "event_timestamp"):
+        if column in frame.columns:
+            frame[column] = frame[column].map(_format_timestamp)
+    columns = [
+        "created_at", "event_timestamp", "subscriber_id", "fraud_type",
+        "rule_id", "severity", "status", "score",
+    ]
+    return frame[[column for column in columns if column in frame.columns]]
+
+
 def _load_state(force_refresh: bool = False) -> tuple[dict, dict, str | None]:
     alerts_path, quality_path = DATA_DIR / "alerts.json", DATA_DIR / "quality.json"
     alerts = _read_json(alerts_path) if alerts_path.exists() else {}
@@ -74,10 +117,10 @@ def main() -> None:
 
     left, right = st.columns(2)
     with left:
-        st.subheader("Alerts by rule")
-        by_rule = alerts.get("by_rule_id", {})
-        if by_rule:
-            st.bar_chart(pd.DataFrame({"Alerts": by_rule}))
+        st.subheader("Alerts by fraud type")
+        by_fraud_type = alerts.get("by_fraud_type", {})
+        if by_fraud_type:
+            st.bar_chart(pd.DataFrame({"Alerts": by_fraud_type}))
         else:
             st.info("No alert counts available.")
     with right:
@@ -92,10 +135,17 @@ def main() -> None:
         else:
             st.info("No quality-gate source metrics available.")
 
-    st.subheader("Top 10 accounts by score")
-    top = alerts.get("top_10_by_score", [])
+    selection = st.sidebar.radio(
+        "Alert source",
+        ["All Alerts", "Model Only (MODEL_GBM_V1)", "Rules Only"],
+    )
+
+    top_heading = "Top scored alerts by rule" if selection == "Rules Only" else "Top 10 alerts by score"
+    st.subheader(f"{top_heading} — {selection}")
+    top = _filter_alert_rows(alerts.get("top_10_by_score", []), selection)
     if top:
-        top_frame = pd.DataFrame(top)
+        top_rows = top if selection == "Rules Only" else top[:10]
+        top_frame = _display_frame(top_rows)
         if "severity" in top_frame.columns:
             styled = top_frame.style.apply(
                 lambda row: ["background-color: #ffe2e2" if row.get("severity") == "HIGH" else "" for _ in row],
@@ -108,11 +158,12 @@ def main() -> None:
         st.info("No model or rule alerts to display.")
 
     st.subheader("Recent alerts")
-    recent = alerts.get("recent_alerts", [])[:20]
-    columns = ["created_at", "subscriber_id", "rule_id", "severity", "score"]
+    recent = _filter_alert_rows(alerts.get("recent_alerts", []), selection)
+    if selection != "Rules Only":
+        recent = recent[:20]
     if recent:
-        recent_frame = pd.DataFrame(recent)
-        st.dataframe(recent_frame[[column for column in columns if column in recent_frame.columns]], use_container_width=True)
+        recent_frame = _display_frame(recent)
+        st.dataframe(recent_frame, use_container_width=True)
     else:
         st.info("No recent alerts available.")
 

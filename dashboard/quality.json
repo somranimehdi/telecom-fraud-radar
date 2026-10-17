@@ -1,11 +1,11 @@
 {
-  "run_id": "gate_20261017T113956Z",
-  "started_at": "2026-10-17T11:39:56.832370+00:00",
-  "finished_at": "2026-10-17T11:42:24.064960+00:00",
-  "total_rows": 3257290,
-  "total_passed": 3209067,
+  "run_id": "gate_20261017T115756Z",
+  "started_at": "2026-10-17T11:57:56.477819+00:00",
+  "finished_at": "2026-10-17T12:00:32.850936+00:00",
+  "total_rows": 3258260,
+  "total_passed": 3210037,
   "total_failed": 48223,
-  "overall_quarantine_rate": 0.014805,
+  "overall_quarantine_rate": 0.0148,
   "quarantine_threshold": 0.05,
   "sources_over_threshold": [],
   "sources": [
@@ -5357,8 +5357,8 @@
         "duplicate call_id: CALL17921684400006911956638": 1,
         "timestamp: Value error, timestamp is in the future": 5333
       },
-      "started_at": "2026-10-17T11:39:57.645118+00:00",
-      "finished_at": "2026-10-17T11:40:54.274022+00:00",
+      "started_at": "2026-10-17T11:57:59.024851+00:00",
+      "finished_at": "2026-10-17T11:58:54.245273+00:00",
       "silver_prefix": "silver/usage/voice/",
       "quarantine_prefix": "quarantine/usage/voice/",
       "freshness_ok": true,
@@ -11665,8 +11665,8 @@
         "duplicate session_id: SESS17921913600007523637654": 1,
         "timestamp: Value error, timestamp is in the future": 6284
       },
-      "started_at": "2026-10-17T11:40:58.221973+00:00",
-      "finished_at": "2026-10-17T11:42:04.251498+00:00",
+      "started_at": "2026-10-17T11:58:58.502694+00:00",
+      "finished_at": "2026-10-17T12:00:05.048162+00:00",
       "silver_prefix": "silver/usage/data/",
       "quarantine_prefix": "quarantine/usage/data/",
       "freshness_ok": true,
@@ -12434,8 +12434,8 @@
         "duplicate transaction_id: TXN17921521800005048955685": 1,
         "timestamp: Value error, timestamp is in the future": 488
       },
-      "started_at": "2026-10-17T11:42:08.073252+00:00",
-      "finished_at": "2026-10-17T11:42:15.725438+00:00",
+      "started_at": "2026-10-17T12:00:09.039717+00:00",
+      "finished_at": "2026-10-17T12:00:16.553095+00:00",
       "silver_prefix": "silver/revenue/prepaid/",
       "quarantine_prefix": "quarantine/revenue/prepaid/",
       "freshness_ok": true,
@@ -12445,10 +12445,10 @@
     },
     {
       "source": "activation",
-      "total_rows": 763,
-      "passed_rows": 754,
+      "total_rows": 1173,
+      "passed_rows": 1164,
       "failed_rows": 9,
-      "quarantine_rate": 0.011796,
+      "quarantine_rate": 0.007673,
       "failures_by_check": {
         "duplicate": 5,
         "schema": 4
@@ -12462,8 +12462,8 @@
         "duplicate event_id: ACT6852649012": 1,
         "timestamp: Value error, timestamp is in the future": 2
       },
-      "started_at": "2026-10-17T11:42:16.718616+00:00",
-      "finished_at": "2026-10-17T11:42:18.639708+00:00",
+      "started_at": "2026-10-17T12:00:17.485647+00:00",
+      "finished_at": "2026-10-17T12:00:20.584404+00:00",
       "silver_prefix": "silver/activation/",
       "quarantine_prefix": "quarantine/activation/",
       "freshness_ok": true,
@@ -12473,10 +12473,10 @@
     },
     {
       "source": "purchases",
-      "total_rows": 16527,
-      "passed_rows": 16289,
+      "total_rows": 17087,
+      "passed_rows": 16849,
       "failed_rows": 238,
-      "quarantine_rate": 0.014401,
+      "quarantine_rate": 0.013929,
       "failures_by_check": {
         "schema": 177,
         "duplicate": 61
@@ -12547,8 +12547,8 @@
         "duplicate purchase_id: PUR17921526600009341679668": 1,
         "timestamp: Value error, timestamp is in the future": 61
       },
-      "started_at": "2026-10-17T11:42:19.823478+00:00",
-      "finished_at": "2026-10-17T11:42:22.772331+00:00",
+      "started_at": "2026-10-17T12:00:23.388380+00:00",
+      "finished_at": "2026-10-17T12:00:29.868828+00:00",
       "silver_prefix": "silver/bundles/purchases/",
       "quarantine_prefix": "quarantine/bundles/purchases/",
       "freshness_ok": true,
@@ -12557,5 +12557,5 @@
       "null_timestamp_rows": 0
     }
   ],
-  "generated_at": "2026-10-17T11:59:00.250172+00:00"
+  "generated_at": "2026-10-17T18:41:16.911456+00:00"
 }

@@ -12,6 +12,7 @@ __pycache__/
 .~lock.*
 1. baseline.py*
 *.pdf
+
 !docs/**/*.pdf
 /tmp/
 .pytest_cache/
@@ -23,3 +24,17 @@ simulator/config.yaml.full
 simulator/config.yaml.rehearsal
 PROJECT_WORK_REPORT.docx
 fraud detection Deepseek.docx
+demo_screenshots/1_bronze_activation.json
+demo_screenshots/1_bronze_data.json
+demo_screenshots/1_bronze_purchases.json
+demo_screenshots/1_bronze_revenue.json
+demo_screenshots/1_bronze_voice.json
+demo_screenshots/2_silver_activation.json
+demo_screenshots/2_silver_data.json
+demo_screenshots/2_silver_revenue.json
+demo_screenshots/2_silver_voice.json
+demo_screenshots/3_gold_features.json
+demo_screenshots/3_gold_full_aggregated_account_day.json
+demo_screenshots/4_reference_bundle.json
+demo_screenshots/4_reference_subscriber.json
+demo_screenshots/5_alerts_sample.json
