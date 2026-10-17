@@ -196,9 +196,15 @@ def _stale(data: dict) -> bool:
 
 def _display_fraud_type(alert: dict) -> str:
     fraud_type = str(alert.get("fraud_type", "UNSPECIFIED"))
-    if fraud_type == "UNSPECIFIED" and alert.get("rule_id") == "MODEL_GBM_V1":
-        return "Suspected Fraud (Model)"
-    return fraud_type
+    if fraud_type in ("UNSPECIFIED", "Suspected Fraud (Model)") and alert.get("rule_id") == "MODEL_GBM_V1":
+        return "🤖 SUSPECTED FRAUD (MODEL)"
+    labels = {
+        "sim_swap_takeover": "📱 SIM SWAP TAKEOVER",
+        "irsf": "🌍 IRSF",
+        "subscription_fraud": "🧾 SUBSCRIPTION FRAUD",
+        "bundle_abuse": "📦 BUNDLE ABUSE",
+    }
+    return labels.get(fraud_type.lower(), f"🔎 {fraud_type.replace('_', ' ').upper()}")
 
 
 def _format_timestamp(value) -> str:
@@ -252,19 +258,19 @@ def _load_state(force_refresh: bool = False) -> tuple[dict, dict, str | None]:
 
 
 def main() -> None:
-    st.set_page_config(page_title="Telecom Fraud Radar", layout="wide")
+    st.set_page_config(page_title="Data Quest | Telecom Fraud Radar", page_icon="🕹️", layout="wide")
     st.markdown(THEME_CSS, unsafe_allow_html=True)
     st.markdown(
         """
         <section class="dq-hero">
-          <div class="dq-eyebrow">SYS.001 // FRAUD MONITORING GRID</div>
+          <div class="dq-eyebrow">🕹️ SYS.001 // FRAUD MONITORING GRID</div>
           <h1>DATA QUEST</h1>
           <p>Telecom Fraud Radar &nbsp;·&nbsp; LocalStack Simulation</p>
         </section>
         """,
         unsafe_allow_html=True,
     )
-    refresh_now = st.button("Refresh now")
+    refresh_now = st.button("↻  SYNC DATA")
     alerts, quality, warning = _load_state(refresh_now)
     if warning:
         st.warning(warning)
@@ -281,20 +287,24 @@ def main() -> None:
     quarantine = quality.get("overall_quarantine_rate")
     quarantine_value = "—" if quarantine is None else f"{float(quarantine):.2%}"
     m1, m2, m3 = st.columns(3)
-    m1.metric("SYS.002 // TOTAL ALERTS", alerts.get("total_alerts", 0))
-    m2.metric("SYS.003 // QUARANTINE RATE", quarantine_value)
-    m3.metric("SYS.004 // MODEL ALERTS TODAY", alerts.get("model_alerts_today", 0))
+    m1.metric("🚨 SYS.002 // TOTAL ALERTS", alerts.get("total_alerts", 0))
+    m2.metric("🧪 SYS.003 // QUARANTINE RATE", quarantine_value)
+    m3.metric("🤖 SYS.004 // MODEL ALERTS TODAY", alerts.get("model_alerts_today", 0))
 
     left, right = st.columns(2)
     with left:
-        st.subheader("SYS.005 // ALERTS BY FRAUD TYPE")
+        st.subheader("🧬 SYS.005 // ALERTS BY FRAUD TYPE")
         by_fraud_type = alerts.get("by_fraud_type", {})
         if by_fraud_type:
-            st.bar_chart(pd.DataFrame({"Alerts": by_fraud_type}))
+            chart_labels = {
+                _display_fraud_type({"fraud_type": label, "rule_id": "MODEL_GBM_V1" if label == "Suspected Fraud (Model)" else ""}): count
+                for label, count in by_fraud_type.items()
+            }
+            st.bar_chart(pd.DataFrame({"Alerts": chart_labels}))
         else:
-            st.info("No alert counts available.")
+            st.info("🛰️ No alert counts available.")
     with right:
-        st.subheader("SYS.006 // QUARANTINE BY SOURCE")
+        st.subheader("🛡️ SYS.006 // QUARANTINE BY SOURCE")
         source_rows = quality.get("sources", [])
         source_data = {
             str(row.get("source", "unknown")): float(row.get("quarantine_rate", 0) or 0)
@@ -303,17 +313,17 @@ def main() -> None:
         if source_data:
             st.bar_chart(pd.DataFrame({"Quarantine rate": source_data}))
         else:
-            st.info("No quality-gate source metrics available.")
+            st.info("🧰 No quality-gate source metrics available.")
 
-    st.sidebar.markdown("## CONTROL DECK")
-    st.sidebar.caption("SYS.007 // ALERT SOURCE FILTER")
+    st.sidebar.markdown("## 🎛️ CONTROL DECK")
+    st.sidebar.caption("🧭 SYS.007 // ALERT SOURCE FILTER")
     selection = st.sidebar.radio(
-        "Alert source",
+        "🕹️ Alert source",
         ["All Alerts", "Model Only (MODEL_GBM_V1)", "Rules Only"],
     )
 
     top_heading = "Top scored alerts by rule" if selection == "Rules Only" else "Top 10 alerts by score"
-    st.subheader(f"SYS.008 // {top_heading} — {selection.upper()}")
+    st.subheader(f"🏆 SYS.008 // {top_heading} — {selection.upper()}")
     top = _filter_alert_rows(alerts.get("top_10_by_score", []), selection)
     if top:
         top_rows = top if selection == "Rules Only" else top[:10]
@@ -327,9 +337,9 @@ def main() -> None:
         else:
             st.dataframe(top_frame, use_container_width=True)
     else:
-        st.info("No model or rule alerts to display.")
+        st.info("🎯 No model or rule alerts to display.")
 
-    st.subheader("SYS.009 // RECENT ALERTS")
+    st.subheader("📡 SYS.009 // RECENT ALERTS")
     recent = _filter_alert_rows(alerts.get("recent_alerts", []), selection)
     if selection != "Rules Only":
         recent = recent[:20]
@@ -337,9 +347,9 @@ def main() -> None:
         recent_frame = _display_frame(recent)
         st.dataframe(recent_frame, use_container_width=True)
     else:
-        st.info("No recent alerts available.")
+        st.info("📭 No recent alerts available.")
 
-    with st.expander("What's simulated and what's not"):
+    with st.expander("ℹ️ What's simulated and what's not"):
         st.markdown(
             "- All data is synthetic; labels are injected by the simulator.\n"
             "- Runs on LocalStack, not real AWS.\n"
