@@ -182,12 +182,37 @@ def write_partitioned_parquet_to_s3(
             except ValueError:
                 value = None
         if isinstance(value, datetime):
+            value = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+            if value.astimezone(timezone.utc) > datetime.now(timezone.utc):
+                continue
             event_date = value.date()
         elif isinstance(value, date):
+            if value > datetime.now(timezone.utc).date():
+                continue
             event_date = value
         else:
-            event_date = datetime.now(timezone.utc).date()
+            continue
         by_date.setdefault(event_date, []).append(row)
+
+    # Invalid timestamps and actual future events share a stable sentinel path.
+    invalid_rows = []
+    for row in rows:
+        event_row = row.get("row", row)
+        value = event_row.get("timestamp")
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                value = None
+        if isinstance(value, datetime):
+            value = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+            invalid = value.astimezone(timezone.utc) > datetime.now(timezone.utc)
+        elif isinstance(value, date):
+            invalid = value > datetime.now(timezone.utc).date()
+        else:
+            invalid = True
+        if invalid:
+            invalid_rows.append(row)
 
     written: list[str] = []
     for event_date, partition_rows in sorted(by_date.items()):
@@ -197,6 +222,13 @@ def write_partitioned_parquet_to_s3(
         key = f"{prefix}/{filename}"
         buffer = io.BytesIO()
         pl.DataFrame(partition_rows, infer_schema_length=None).write_parquet(buffer)
+        s3.put_object(Bucket=bucket, Key=key, Body=buffer.getvalue(),
+                      ContentType="application/octet-stream")
+        written.append(key)
+    if invalid_rows:
+        key = f"{base_prefix.rstrip('/')}/year=unknown/month=unknown/day=unknown/{filename}"
+        buffer = io.BytesIO()
+        pl.DataFrame(invalid_rows, infer_schema_length=None).write_parquet(buffer)
         s3.put_object(Bucket=bucket, Key=key, Body=buffer.getvalue(),
                       ContentType="application/octet-stream")
         written.append(key)

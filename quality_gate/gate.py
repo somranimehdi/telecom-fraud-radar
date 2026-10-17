@@ -38,8 +38,8 @@ def _check_source_freshness(
     raw_prefix: str,
     reference_date: date | datetime | None = None,
     max_days_behind: int = 2,
-) -> tuple[bool, int | None]:
-    """Compare the newest row timestamp date with the reference date."""
+) -> tuple[bool, int | None, int, int]:
+    """Return freshness and invalid-time counts using only valid event dates."""
     if reference_date is None:
         reference_date = datetime.now(timezone.utc).date()
     elif isinstance(reference_date, datetime):
@@ -47,24 +47,33 @@ def _check_source_freshness(
 
     frame, file_count = read_source(s3, bucket, raw_prefix, file_type="auto")
     if not file_count or frame.is_empty() or "timestamp" not in frame.columns:
-        return (False, None)
+        return (False, None, 0, 0)
     event_dates: list[date] = []
+    future_rows = 0
+    null_rows = 0
     for value in frame.get_column("timestamp").to_list():
-        if isinstance(value, datetime):
-            event_dates.append(value.date())
-        elif isinstance(value, date):
-            event_dates.append(value)
-        elif value is not None:
-            try:
-                event_dates.append(datetime.fromisoformat(
+        if value is None:
+            null_rows += 1
+            continue
+        try:
+            if isinstance(value, datetime):
+                event_date = value.date()
+            elif isinstance(value, date):
+                event_date = value
+            else:
+                event_date = datetime.fromisoformat(
                     str(value).replace("Z", "+00:00")
-                ).date())
-            except ValueError:
-                continue
+                ).date()
+        except (TypeError, ValueError):
+            continue
+        if event_date > reference_date:
+            future_rows += 1
+        else:
+            event_dates.append(event_date)
     if not event_dates:
-        return (False, None)
-    days_behind = (reference_date - max(event_dates)).days
-    return (days_behind <= max_days_behind, days_behind)
+        return (False, None, future_rows, null_rows)
+    days_behind = max(0, (reference_date - max(event_dates)).days)
+    return (days_behind <= max_days_behind, days_behind, future_rows, null_rows)
 
 
 # ─── Reference Data Loading ─────────────────────────────────────────────────
@@ -175,12 +184,14 @@ def run_gate(
 
             # Freshness check
             paths = SOURCE_PATHS[src]
-            fresh_ok, days_behind = _check_source_freshness(
+            fresh_ok, days_behind, future_rows, null_rows = _check_source_freshness(
                 s3, bucket, paths.raw_prefix, reference_date=as_of,
                 max_days_behind=freshness_max_days,
             )
             src_report.freshness_ok = fresh_ok
             src_report.freshness_days_behind = days_behind
+            src_report.future_timestamp_rows = future_rows
+            src_report.null_timestamp_rows = null_rows
 
             if verbose and not src_report.freshness_ok:
                 behind_str = f"{days_behind} days behind" if days_behind is not None else "no data"

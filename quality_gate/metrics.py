@@ -76,6 +76,8 @@ def _build_alert_payload(report: GateReport) -> dict:
                 "failures_by_check": r.failures_by_check,
                 "freshness_ok": r.freshness_ok,
                 "freshness_days_behind": r.freshness_days_behind,
+                "future_timestamp_rows": r.future_timestamp_rows,
+                "null_timestamp_rows": r.null_timestamp_rows,
             }
             for r in report.source_reports
         ],

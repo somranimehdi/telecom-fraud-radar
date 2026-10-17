@@ -113,6 +113,22 @@ def simulation_start_date(config: dict, end_yesterday: bool = False,
     return date.fromisoformat(config["population"]["start_date"])
 
 
+def write_effective_config_snapshot(config: dict, path: str | Path) -> Path:
+    """Persist the actual start, duration, and inclusive end of this run."""
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(yaml.safe_dump(config, sort_keys=False))
+    return target
+
+
+def apply_effective_window(config: dict, start_date: date) -> dict:
+    """Update the loaded config with the actual inclusive run window."""
+    days = int(config["population"]["days"])
+    config["population"]["start_date"] = start_date.isoformat()
+    config["window_end_date"] = (start_date + timedelta(days=days - 1)).isoformat()
+    return config
+
+
 def inject_defects(collector: EventCollector, labels: list[FraudLabel], rate: float,
                    seed: int = 42) -> list[dict]:
     """Inject deterministic raw-row defects without altering fraud subscribers."""
@@ -201,8 +217,7 @@ def run_simulation(
     start_date = datetime.combine(
         simulation_start_date(cfg, end_yesterday), datetime.min.time(), tzinfo=timezone.utc
     )
-    if end_yesterday:
-        cfg["population"]["start_date"] = start_date.date().isoformat()
+    apply_effective_window(cfg, start_date.date())
 
     print(f"─── Simulator Run ──────────────────────────────")
     print(f"  Seed         : {seed}")
@@ -296,6 +311,7 @@ def run_simulation(
     if write_outputs:
         print("[5/5] Writing labels + config snapshot...")
         labels_path = write_labels(labels, cfg, config_path=config_path)
+        write_effective_config_snapshot(cfg, labels_path.parent / "config.used.yaml")
         print(f"      → {labels_path}")
         defects_path = Path("simulator/out/injected_defects.parquet")
         defects_path.parent.mkdir(parents=True, exist_ok=True)

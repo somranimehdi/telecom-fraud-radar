@@ -86,6 +86,8 @@ class SourceReport:
     # Freshness — filled in by the gate (not by validate_source)
     freshness_ok: bool = True
     freshness_days_behind: int | None = None
+    future_timestamp_rows: int = 0
+    null_timestamp_rows: int = 0
     # S3 locations of outputs
     silver_prefix: str = ""
     quarantine_prefix: str = ""
@@ -127,6 +129,8 @@ class SourceReport:
             "quarantine_prefix": self.quarantine_prefix,
              "freshness_ok": self.freshness_ok,
             "freshness_days_behind": self.freshness_days_behind,
+            "future_timestamp_rows": self.future_timestamp_rows,
+            "null_timestamp_rows": self.null_timestamp_rows,
 
         }
 

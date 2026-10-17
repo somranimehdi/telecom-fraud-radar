@@ -1,0 +1,39 @@
+{
+  "overall_share_subscribers_flagged": 0.0812,
+  "rules": {
+    "IRSF_HIGH_RISK_BURST": {
+      "alerts": 1046,
+      "alerts_per_flagged_account": 1.5658682634730539,
+      "any_fraud_precision": 0.13622754491017963,
+      "precision_matching_archetype": 0.08832335329341318,
+      "recall_matching_archetype": 0.9365079365079365,
+      "unique_accounts_flagged": 668
+    },
+    "NEW_ACCOUNT_HIGH_VALUE_PURCHASE": {
+      "alerts": 96,
+      "alerts_per_flagged_account": 1.1162790697674418,
+      "any_fraud_precision": 0.06976744186046512,
+      "precision_matching_archetype": 0.05813953488372093,
+      "recall_matching_archetype": 0.11363636363636363,
+      "unique_accounts_flagged": 86
+    },
+    "REPEATED_BUNDLE_PURCHASES": {
+      "alerts": 19,
+      "alerts_per_flagged_account": 1.0,
+      "any_fraud_precision": 0.8947368421052632,
+      "precision_matching_archetype": 0.8947368421052632,
+      "recall_matching_archetype": 0.8095238095238095,
+      "unique_accounts_flagged": 19
+    },
+    "SIM_SWAP_INTL_24H": {
+      "alerts": 67,
+      "alerts_per_flagged_account": 1.0,
+      "any_fraud_precision": 0.8656716417910447,
+      "precision_matching_archetype": 0.8656716417910447,
+      "recall_matching_archetype": 0.8055555555555556,
+      "unique_accounts_flagged": 67
+    }
+  },
+  "subscriber_count": 10000,
+  "unique_subscribers_flagged": 812
+}
