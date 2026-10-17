@@ -12,7 +12,7 @@ import polars as pl
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import GroupKFold
-from sklearn.metrics import average_precision_score, roc_auc_score
+from sklearn.metrics import average_precision_score, precision_recall_curve, roc_auc_score
 
 from model.metrics import aggregate_accounts, bootstrap_ci, precision_recall_at_budget
 
@@ -50,16 +50,29 @@ def _weights(y: np.ndarray) -> np.ndarray:
     return np.where(y == 1, ratio, 1.0)
 
 
-def _cross_validated_pr_auc(train: pl.DataFrame, features: list[str]) -> list[float]:
+def _cross_validated_predictions(train: pl.DataFrame, features: list[str]) -> tuple[list[float], pl.DataFrame]:
     x, y = _matrix(train, features), train.get_column("label").to_numpy().astype(int)
     groups = train.get_column("subscriber_id").to_numpy()
     cv = GroupKFold(n_splits=3)
     scores: list[float] = []
+    oof = np.empty(len(y), dtype=np.float64)
     for train_idx, valid_idx in cv.split(x, y, groups):
         model = estimator()
         model.fit(x[train_idx], y[train_idx], sample_weight=_weights(y[train_idx]))
-        scores.append(float(average_precision_score(y[valid_idx], model.predict_proba(x[valid_idx])[:, 1])))
-    return scores
+        validation_scores = model.predict_proba(x[valid_idx])[:, 1]
+        oof[valid_idx] = validation_scores
+        scores.append(float(average_precision_score(y[valid_idx], validation_scores)))
+    columns = ["subscriber_id", "date", "label"]
+    return scores, train.select(columns).with_columns(pl.Series("oof_score", oof))
+
+
+def alert_threshold_from_oof(oof_scores: pl.DataFrame) -> float:
+    """Lowest OOF score threshold attaining at least 0.5 row-level precision."""
+    y = oof_scores.get_column("label").to_numpy().astype(int)
+    scores = oof_scores.get_column("oof_score").to_numpy().astype(float)
+    precision, _recall, thresholds = precision_recall_curve(y, scores)
+    qualifying = thresholds[precision[:-1] >= 0.5]
+    return float(qualifying.min()) if len(qualifying) else float(np.quantile(scores, 0.99))
 
 
 def _account_frame(rows: pl.DataFrame, scores: np.ndarray) -> pl.DataFrame:
@@ -250,7 +263,8 @@ def main() -> None:
     features = [name for name in features if name not in DROP_FEATURES]
     train = table.filter(pl.col("split") == "train")
     test = table.filter(pl.col("split") == "test")
-    cv_scores = _cross_validated_pr_auc(train, features)
+    cv_scores, oof_scores = _cross_validated_predictions(train, features)
+    alert_threshold = alert_threshold_from_oof(oof_scores)
 
     x_train, y_train = _matrix(train, features), train.get_column("label").to_numpy().astype(int)
     x_test, y_test = _matrix(test, features), test.get_column("label").to_numpy().astype(int)
@@ -262,7 +276,7 @@ def main() -> None:
     cis = _bootstrap_metrics(main_eval["accounts"])
 
     ablated_features = [name for name in features if name not in ABLATION_FEATURES]
-    ablation_cv = _cross_validated_pr_auc(train, ablated_features)
+    ablation_cv, _ = _cross_validated_predictions(train, ablated_features)
     ablation = estimator()
     ablation.fit(_matrix(train, ablated_features), y_train, sample_weight=_weights(y_train))
     ablation_scores = ablation.predict_proba(_matrix(test, ablated_features))[:, 1]
@@ -279,7 +293,16 @@ def main() -> None:
     importance = sorted(zip(features, pi.importances_mean.tolist()), key=lambda item: -item[1])[:10]
 
     joblib.dump({"model": model, "feature_columns": features, "random_state": SEED}, OUT / "model.joblib")
+    oof_scores.write_parquet(OUT / "oof_scores.parquet")
+    training_dates = train.get_column("date")
     metrics = {
+        "model_version": "v1",
+        "trained_on": "simulated data",
+        "alert_threshold": alert_threshold,
+        "training_date_range": {
+            "start": str(training_dates.min()),
+            "end": str(training_dates.max()),
+        },
         "model": "HistGradientBoostingClassifier",
         "parameters": {"random_state": SEED, "max_depth": 5, "learning_rate": 0.08, "max_iter": 250, "l2_regularization": 1.0},
         "dropped_constant_features": dropped, "feature_columns": features,

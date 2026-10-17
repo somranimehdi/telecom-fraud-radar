@@ -198,8 +198,8 @@ make destroy
 - [x] **Week 2** — Simulator + bronze ingestion
 - [x] **Week 3** — Quality gate + silver
 - [x] **Week 4** — Gold, Athena, rules engine
-- [ ] **Week 5** — Model training + scoring Lambda
-- [ ] **Week 6** — Dashboard, demo video, polish
+- [x] **Week 5** — Model training + scoring (Lambda deployment plan-gated)
+- [x] **Week 6** — Dashboard, live demo, polish
 
 ---
 
@@ -269,6 +269,66 @@ within 24 hours.
 **Bundle abuse limitation:** bundle-usage source 6 is deferred, so the
 repeat-purchase rule is only a bundle-abuse proxy. The project does not claim
 to detect allowance over-consumption yet.
+
+## Week 5: Model and Scoring
+
+**Model.** An XGBoost binary classifier (`HistGradientBoostingClassifier`)
+trained on 30 days of `gold/model_features/` across 10,000 simulated
+subscribers. Model artifact, feature columns, and evaluation metrics are
+published to `s3://telco-fraud-bronze/models/fraud_gbm/v1/`. Evaluation
+metrics include per-archetype ROC-AUC and PR-AUC, GroupKFold cross-
+validation, and a rules-only vs model vs combined comparison — see
+`model/out/model_metrics.json` and `evaluation/out/model_vs_rules.md`.
+
+Known limitation: bundle abuse detection is weak (PR-AUC 0.022 on
+6 test positives) because bundle-usage source 6 is deferred. The model
+detects SIM swap takeover (PR-AUC 0.80), subscription fraud (PR-AUC 0.67),
+and IRSF (PR-AUC 0.29) well enough to be useful; bundle abuse is a proxy.
+
+**Scoring.** `scoring/score_day.py` scores one day of Gold features and
+writes idempotent `MODEL_GBM_V1` alerts to DynamoDB `fraud_alerts`, capped
+at 100 per day by score. Alerts are `HIGH` severity when corroborated by
+a rule alert on the same day, `MEDIUM` otherwise. An SNS summary is
+published to `fraud-alerts-topic` per run. Invoke with
+`make score-day DATE=YYYY-MM-DD` or `python -m scoring.score_day --date
+YYYY-MM-DD [--dry-run]`.
+
+The scoring module is containerized (`scoring/Dockerfile`, verified Docker
+build), but Lambda deployment is out of scope for this iteration because
+ECR is plan-gated in LocalStack's Student plan. The provision script in
+`infra/provision_scoring_lambda.sh` documents the intended deployment
+path and is retained as a reference for a Team-plan LocalStack instance.
+
+## Week 6: Dashboard and Live Demo
+
+**Streamlit dashboard.** `dashboard/app.py` reads live state from DynamoDB
+`fraud_alerts` and the latest quality-gate run, and renders total alerts,
+quarantine rate, model alerts today, alert-type and quarantine-rate charts,
+top-10 scored accounts, recent alerts, and an honest limitations panel.
+Launch with `make dashboard`.
+
+**Live demo.** Three scripts simulate near-real-time ingestion without
+requiring Lambda deployment (ECR is plan-gated on LocalStack Student):
+- `make live-producer` streams activation and purchase events into Kinesis
+  at 5 events/sec (`scripts/live_producer.py`).
+- `make live-ingest` polls Kinesis and writes batches to Bronze S3,
+  simulating what the Lambda consumer would do in production
+  (`scripts/live_ingest.py`).
+- `make live-loop` runs the quality gate and daily scoring every 60 seconds
+  so new quality results and alerts can appear in the dashboard
+  (`scripts/live_loop.sh`).
+
+**What this is and isn't.** Events are produced in real time and land in
+Bronze S3 in near-real-time. Silver is a batch layer: the quality gate runs
+every 60 seconds and processes available Bronze data. Gold model-feature
+partitions remain the published daily snapshot; `live-loop` does not rebuild
+them from each ingest batch. Scoring therefore uses daily aggregate features,
+not per-event features, which fits low-velocity telecom fraud such as SIM
+swap and subscription fraud. Production-grade event-driven scoring would
+require a different model on CDR-level features and a feature store; that's
+out of scope for this iteration.
+
+Run `make live-demo-help` for the 4-terminal demo setup.
 
 ## Rules baseline
 

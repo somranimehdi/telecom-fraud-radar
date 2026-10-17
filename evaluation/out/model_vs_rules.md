@@ -28,10 +28,10 @@ Dropped constant feature(s): failed_payment_count.
 
 | Method | Accounts flagged | Precision | Recall | Precision 95% CI | Recall 95% CI |
 |---|---|---|---|---|---|
-| Rules | 236 | 0.1907 | 0.7500 | 0.1420–0.2459 | 0.6386–0.8583 |
-| Model at rules alert budget | 236 | 0.2373 | 0.9333 | 0.1800–0.3013 | 0.8602–0.9839 |
-| Rules + model top 25% | 59 | 0.7458 | 0.7333 | 0.5423–0.9187 | 0.6192–0.8465 |
-| Rules + model top 50% | 118 | 0.3729 | 0.7333 | 0.2765–0.4839 | 0.6204–0.8501 |
+| Rules | 236 | 0.1907 | 0.7500 | 0.1461–0.2335 | 0.6342–0.8741 |
+| Model at rules alert budget | 236 | 0.2373 | 0.9333 | 0.1814–0.3002 | 0.8543–1.0000 |
+| Rules + model top 25% | 59 | 0.7458 | 0.7333 | 0.5470–0.9040 | 0.6171–0.8468 |
+| Rules + model top 50% | 118 | 0.3729 | 0.7333 | 0.2781–0.4640 | 0.6171–0.8468 |
 
 ### Per-archetype account recall
 

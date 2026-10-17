@@ -1,1 +1,0 @@
-.venv/bin/python -m transform.gold --config simulator/config.yaml

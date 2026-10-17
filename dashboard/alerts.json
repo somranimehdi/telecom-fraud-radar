@@ -1,0 +1,657 @@
+{
+  "generated_at": "2026-10-17T11:59:00.162475+00:00",
+  "total_alerts": 1428,
+  "model_alerts_today": 100,
+  "by_rule_id": {
+    "IRSF_HIGH_RISK_BURST": 1046,
+    "SIM_SWAP_INTL_24H": 67,
+    "NEW_ACCOUNT_HIGH_VALUE_PURCHASE": 96,
+    "REPEATED_BUNDLE_PURCHASES": 19,
+    "MODEL_GBM_V1": 200
+  },
+  "by_severity": {
+    "CRITICAL": 1046,
+    "HIGH": 164,
+    "MEDIUM": 218
+  },
+  "by_status": {
+    "CANDIDATE": 1228,
+    "OPEN": 200
+  },
+  "by_event_date": {
+    "2026-09-18": 40,
+    "2026-09-19": 42,
+    "2026-09-20": 47,
+    "2026-09-21": 38,
+    "2026-09-22": 49,
+    "2026-09-23": 39,
+    "2026-09-24": 43,
+    "2026-09-25": 38,
+    "2026-09-26": 40,
+    "2026-09-27": 42,
+    "2026-09-28": 29,
+    "2026-09-29": 42,
+    "2026-09-30": 46,
+    "2026-10-01": 51,
+    "2026-10-02": 47,
+    "2026-10-03": 39,
+    "2026-10-04": 41,
+    "2026-10-05": 37,
+    "2026-10-06": 43,
+    "2026-10-07": 46,
+    "2026-10-08": 35,
+    "2026-10-09": 55,
+    "2026-10-10": 43,
+    "2026-10-11": 34,
+    "2026-10-12": 40,
+    "2026-10-13": 43,
+    "2026-10-14": 32,
+    "2026-10-15": 43,
+    "2026-10-16": 117,
+    "2026-10-17": 100
+  },
+  "top_10_by_score": [
+    {
+      "alert_id": "SUB002615#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB002615",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9998463232189105,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB006912#2026-10-16#MODEL_GBM_V1",
+      "subscriber_id": "SUB006912",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9997570820081138,
+      "severity": "HIGH",
+      "event_timestamp": "2026-10-16",
+      "created_at": "2026-10-17T10:39:58.207300+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB000711#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB000711",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9996907700108714,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB004552#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB004552",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.999583644465992,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB001133#2026-10-16#MODEL_GBM_V1",
+      "subscriber_id": "SUB001133",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9995024279501377,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-16",
+      "created_at": "2026-10-17T10:39:58.207300+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB007668#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB007668",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9994737885495402,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB003598#2026-10-16#MODEL_GBM_V1",
+      "subscriber_id": "SUB003598",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9994671815257173,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-16",
+      "created_at": "2026-10-17T10:39:58.207300+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB003608#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB003608",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9994634061408364,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB009641#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB009641",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9994444131470245,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB005820#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB005820",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9993635058572038,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    }
+  ],
+  "recent_alerts": [
+    {
+      "alert_id": "SUB000053#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB000053",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9883116534845932,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB000188#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB000188",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9983894948580949,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB000254#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB000254",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9962144204421891,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB000344#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB000344",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.998863399105435,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB000506#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB000506",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9927795558412668,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB000520#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB000520",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9971286056943475,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB000620#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB000620",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9910093050536842,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB000711#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB000711",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9996907700108714,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB000771#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB000771",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9942433909801097,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB000916#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB000916",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9891260024924358,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB000964#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB000964",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9938991427895694,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB001084#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB001084",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9992968539800154,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB001403#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB001403",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9989478010808337,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB001424#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB001424",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9919041068469814,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB001489#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB001489",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9904980788523953,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB001584#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB001584",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9931100631227509,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB001639#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB001639",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9971531451379958,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB001654#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB001654",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9948432258569996,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB001679#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB001679",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9974699759057913,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB001796#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB001796",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9921139404071566,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB001824#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB001824",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.997674836968789,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB001843#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB001843",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9919221615185265,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB002103#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB002103",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9979620539015798,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB002448#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB002448",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.990994094153771,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB002504#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB002504",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9960737168559161,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB002547#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB002547",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9912999999409956,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB002591#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB002591",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9909692573863618,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB002615#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB002615",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9998463232189105,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB002646#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB002646",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9993029124599627,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB002664#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB002664",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9964993306684388,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB002803#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB002803",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9888875530221332,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB002948#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB002948",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9982038378900863,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB003008#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB003008",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9909595654720823,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB003234#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB003234",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9914544562103624,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB003257#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB003257",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9956650688057337,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB003258#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB003258",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9962080053249915,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB003441#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB003441",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9903376253564753,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB003582#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB003582",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9890768372249064,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB003593#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB003593",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9988416152506701,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB003608#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB003608",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9994634061408364,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB003657#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB003657",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9908843885510522,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB003745#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB003745",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9944271234399122,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB003858#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB003858",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9980941770217178,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB003946#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB003946",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9959468369811986,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB004010#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB004010",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9917696568338781,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB004012#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB004012",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9917123790881218,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB004040#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB004040",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9947691652464951,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB004315#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB004315",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9897797269258516,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB004443#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB004443",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.9966637503905407,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    },
+    {
+      "alert_id": "SUB004552#2026-10-17#MODEL_GBM_V1",
+      "subscriber_id": "SUB004552",
+      "rule_id": "MODEL_GBM_V1",
+      "score": 0.999583644465992,
+      "severity": "MEDIUM",
+      "event_timestamp": "2026-10-17",
+      "created_at": "2026-10-17T11:42:40.121003+00:00",
+      "status": "OPEN"
+    }
+  ]
+}
