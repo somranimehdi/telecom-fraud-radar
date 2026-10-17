@@ -78,13 +78,16 @@ def _s3_partitions(s3, bucket: str, prefix: str, fields: tuple[str, ...]):
         for obj in page.get("Contents", []):
             if not obj["Key"].endswith(".parquet"):
                 continue
-            pieces = obj["Key"].split("/")
+            key = obj["Key"]
+            if not key.startswith(prefix):
+                continue
+            pieces = key[len(prefix):].split("/")[:-1]
             values: list[str] = []
-            for field in fields:
-                match = next((part[len(field) + 1:] for part in pieces if part.startswith(field + "=")), None)
-                if match is None:
+            for field, piece in zip(fields, pieces):
+                marker = field + "="
+                if not piece.startswith(marker):
                     break
-                values.append(match)
+                values.append(piece[len(marker):])
             if len(values) == len(fields):
                 partition_location = obj["Key"].rsplit("/", 1)[0] + "/"
                 partitions[tuple(values)] = f"s3://{bucket}/{partition_location}"

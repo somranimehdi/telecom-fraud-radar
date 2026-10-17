@@ -1,6 +1,7 @@
 -- Glue database: telecom_fraud_radar (created by transform.athena.setup)
 -- Silver paths and physical column names/types match the Parquet files written
--- by quality_gate. `timestamp` is quoted because Hive reserves that identifier.
+-- by quality_gate. Each event-date partition contains deterministic data.parquet
+-- or quarantine.parquet files. `timestamp` is quoted because Hive reserves it.
 
 CREATE EXTERNAL TABLE IF NOT EXISTS activation (
   event_id string,

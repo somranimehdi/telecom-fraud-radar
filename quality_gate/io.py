@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import io
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -166,6 +166,43 @@ def write_parquet_to_s3(
     return key
 
 
+def write_partitioned_parquet_to_s3(
+    s3, bucket: str, base_prefix: str, rows: list[dict], filename: str,
+) -> list[str]:
+    """Write rows into deterministic files partitioned by their event date."""
+    if not rows:
+        return []
+    by_date: dict[date, list[dict]] = {}
+    for row in rows:
+        event_row = row.get("row", row)
+        value = event_row.get("timestamp")
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                value = None
+        if isinstance(value, datetime):
+            event_date = value.date()
+        elif isinstance(value, date):
+            event_date = value
+        else:
+            event_date = datetime.now(timezone.utc).date()
+        by_date.setdefault(event_date, []).append(row)
+
+    written: list[str] = []
+    for event_date, partition_rows in sorted(by_date.items()):
+        prefix = _now_partition_prefix(base_prefix, datetime(
+            event_date.year, event_date.month, event_date.day, tzinfo=timezone.utc
+        ))
+        key = f"{prefix}/{filename}"
+        buffer = io.BytesIO()
+        pl.DataFrame(partition_rows, infer_schema_length=None).write_parquet(buffer)
+        s3.put_object(Bucket=bucket, Key=key, Body=buffer.getvalue(),
+                      ContentType="application/octet-stream")
+        written.append(key)
+    return written
+
+
 def write_quarantine_to_s3(
     s3,
     bucket: str,
@@ -183,12 +220,10 @@ def write_quarantine_to_s3(
     if not quarantine_rows:
         return ""
 
-    df = pl.DataFrame(quarantine_rows)
-    return write_parquet_to_s3(
-        s3, bucket, base_prefix, df, run_id,
-        filename="quarantine.parquet",
-        timestamp=timestamp,
+    keys = write_partitioned_parquet_to_s3(
+        s3, bucket, base_prefix, quarantine_rows, "quarantine.parquet"
     )
+    return keys[0] if keys else ""
 
 
 def write_metrics_to_s3(

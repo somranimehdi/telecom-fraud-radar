@@ -25,7 +25,7 @@ SNS_TOPIC   := fraud-alerts-topic
 KINESIS_1   := sim-activation-stream
 KINESIS_2   := bundle-purchases-stream
 
-.PHONY: help up down destroy infra test simulate logs shell health clean quality quality-quiet quality-one gold athena athena-query rules week4
+.PHONY: help up down destroy infra test simulate logs shell health clean quality quality-quiet quality-one gold athena athena-query rules eval-rules week4
 
 help:
 	@echo "Telecom Fraud Radar — available targets:"
@@ -44,6 +44,7 @@ help:
 	@echo "  make athena      Set up Glue catalog, Athena tables, and partitions"
 	@echo "  make athena-query SQL=path      Run a saved investigation query"
 	@echo "  make rules       Write rule candidate alerts to DynamoDB"
+	@echo "  make eval-rules  Evaluate fraud_alerts against simulator labels"
 	@echo "  make week4       Run the complete Week 4 build"
 	@echo "  make clean      Remove Python caches"
 
@@ -156,6 +157,9 @@ athena-query:
 
 rules: athena
 	$(PY) -m scoring.rules --config simulator/config.yaml
+
+eval-rules:
+	$(PY) -m evaluation.rules_baseline --config simulator/config.yaml
 
 week4: rules
 	@echo "✅ Week 4 Gold, Athena, and rule candidates are ready."

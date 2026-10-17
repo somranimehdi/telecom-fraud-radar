@@ -14,13 +14,13 @@ Design:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 
 from quality_gate.io import (
-    list_objects,
     load_all_bundle_ids,
     load_all_subscriber_ids,
+    read_source,
 )
 from quality_gate.metrics import emit_metrics_and_alert
 from quality_gate.models import GateReport
@@ -32,61 +32,39 @@ DEFAULT_SOURCES: list[str] = ["voice", "data", "revenue", "activation", "purchas
 
 # ─── Freshness ──────────────────────────────────────────────────────────────
 
-def _parse_partition_date_from_key(key: str) -> str | None:
-    """
-    Extract YYYY-MM-DD from a Hive-style S3 key.
-    Example: raw/usage/voice/year=2026/month=09/day=15/voice.parquet
-             → "2026-09-15"
-    Returns None if the key doesn't contain a partition.
-    """
-    import re
-    m = re.search(r"year=(\d{4})/month=(\d{2})/day=(\d{2})", key)
-    if not m:
-        return None
-    return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
-
-
 def _check_source_freshness(
     s3,
     bucket: str,
     raw_prefix: str,
-    today: datetime | None = None,
+    reference_date: date | datetime | None = None,
+    max_days_behind: int = 2,
 ) -> tuple[bool, int | None]:
-    """
-    Check whether a source has data from today (or very recently).
+    """Compare the newest row timestamp date with the reference date."""
+    if reference_date is None:
+        reference_date = datetime.now(timezone.utc).date()
+    elif isinstance(reference_date, datetime):
+        reference_date = reference_date.date()
 
-    Returns:
-      (freshness_ok, days_behind)
-      - freshness_ok: True if newest data is within the max_days_behind window
-      - days_behind:  How many days behind today the newest data is.
-                     None if no files exist.
-    """
-    if today is None:
-        today = datetime.now(timezone.utc)
-
-    keys = list_objects(s3, bucket, raw_prefix)
-    if not keys:
+    frame, file_count = read_source(s3, bucket, raw_prefix, file_type="auto")
+    if not file_count or frame.is_empty() or "timestamp" not in frame.columns:
         return (False, None)
-
-    # Find the newest partition date across all keys
-    dates: list[str] = []
-    for obj in keys:
-        d = _parse_partition_date_from_key(obj["Key"])
-        if d:
-            dates.append(d)
-
-    if not dates:
-        # Files exist but no partition info — treat as unknown freshness
+    event_dates: list[date] = []
+    for value in frame.get_column("timestamp").to_list():
+        if isinstance(value, datetime):
+            event_dates.append(value.date())
+        elif isinstance(value, date):
+            event_dates.append(value)
+        elif value is not None:
+            try:
+                event_dates.append(datetime.fromisoformat(
+                    str(value).replace("Z", "+00:00")
+                ).date())
+            except ValueError:
+                continue
+    if not event_dates:
         return (False, None)
-
-    newest = max(dates)
-    try:
-        newest_dt = datetime.fromisoformat(newest).replace(tzinfo=timezone.utc)
-    except ValueError:
-        return (False, None)
-
-    delta_days = (today - newest_dt).days
-    return (True, delta_days)
+    days_behind = (reference_date - max(event_dates)).days
+    return (days_behind <= max_days_behind, days_behind)
 
 
 # ─── Reference Data Loading ─────────────────────────────────────────────────
@@ -136,6 +114,7 @@ def run_gate(
     sources: list[str] | None = None,
     verbose: bool = True,
     allow_empty: bool = False,
+    as_of: date | None = None,
 ) -> GateReport:
     """
     Run the quality gate on all (or specified) sources.
@@ -169,6 +148,7 @@ def run_gate(
         print(f"  Bucket : {bucket}")
         print(f"  Threshold: {quarantine_threshold:.2%}")
         print(f"  Freshness max days behind: {freshness_max_days}")
+        print(f"  Freshness as of: {as_of or datetime.now(timezone.utc).date()}")
         print("═" * 65)
 
     # ── Load reference data ─────────────────────────────────────────────────
@@ -196,12 +176,10 @@ def run_gate(
             # Freshness check
             paths = SOURCE_PATHS[src]
             fresh_ok, days_behind = _check_source_freshness(
-                s3, bucket, paths.raw_prefix,
+                s3, bucket, paths.raw_prefix, reference_date=as_of,
+                max_days_behind=freshness_max_days,
             )
-            if days_behind is None or days_behind > freshness_max_days:
-                src_report.freshness_ok = False
-            else:
-                src_report.freshness_ok = True
+            src_report.freshness_ok = fresh_ok
             src_report.freshness_days_behind = days_behind
 
             if verbose and not src_report.freshness_ok:

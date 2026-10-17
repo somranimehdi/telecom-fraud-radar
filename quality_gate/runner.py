@@ -26,8 +26,6 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from typing import Any
 
-import polars as pl
-
 from quality_gate.checks import (
     SOURCE_REGISTRY,
     CheckContext,
@@ -38,8 +36,7 @@ from quality_gate.checks import (
 )
 from quality_gate.io import (
     read_source,
-    write_parquet_to_s3,
-    write_quarantine_to_s3,
+    write_partitioned_parquet_to_s3,
 )
 from quality_gate.models import QuarantineRow, SourceReport
 
@@ -201,24 +198,19 @@ def validate_source(
             report.record_failure(check_name, reason)
 
     # 3. Write outputs
-    ts = timestamp or datetime.now(timezone.utc)
-
     if passed_rows:
-        silver_df = pl.DataFrame(passed_rows, infer_schema_length=None)
-        silver_key = write_parquet_to_s3(
-            s3, bucket, paths.silver_prefix, silver_df,
-            run_id=run_id, filename="data.parquet", timestamp=ts,
+        silver_keys = write_partitioned_parquet_to_s3(
+            s3, bucket, paths.silver_prefix, passed_rows, "data.parquet",
         )
         if verbose:
-            print(f"  [{source}] silver   → {silver_key} ({len(passed_rows):,} rows)")
+            print(f"  [{source}] silver   → {len(silver_keys)} event-date partition(s) ({len(passed_rows):,} rows)")
 
     if quarantine_rows:
-        quarantine_key = write_quarantine_to_s3(
-            s3, bucket, paths.quarantine_prefix, quarantine_rows,
-            run_id=run_id, timestamp=ts,
+        quarantine_keys = write_partitioned_parquet_to_s3(
+            s3, bucket, paths.quarantine_prefix, quarantine_rows, "quarantine.parquet",
         )
         if verbose:
-            print(f"  [{source}] quarantine → {quarantine_key} ({len(quarantine_rows):,} rows)")
+            print(f"  [{source}] quarantine → {len(quarantine_keys)} event-date partition(s) ({len(quarantine_rows):,} rows)")
 
     # 4. Finalize report
     report.finish()

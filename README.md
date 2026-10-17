@@ -65,13 +65,16 @@ Bundle catalog  ─────────────────────�
 | # | Source | Transport | In first demo |
 |---|---|---|---|
 | 1 | SIM activation | Kinesis → Lambda → S3 | ✅ |
-| 2 | Revenue (prepaid + postpaid) | S3 batch | ✅ |
+| 2 | Revenue (prepaid) | S3 batch | ✅ |
 | 3 | Usage (voice + data CDRs) | S3 batch | ✅ |
 | 4 | Bundle catalog | DynamoDB (reference) | ✅ |
 | 5 | Bundle purchases | Kinesis → Lambda → S3 | ✅ |
 | 6 | Bundle usage | S3 batch | 🔜 second iteration |
 | 7 | Churn / customer state | S3 batch | 🔜 second iteration |
 | 8 | Subscriber profile | DynamoDB (reference) | ✅ |
+
+The simulator currently generates prepaid revenue only; postpaid revenue is
+not generated yet.
 
 ---
 
@@ -153,6 +156,9 @@ telecom-fraud-radar/
 - A LocalStack auth token (Student plan). Set it in `.env` as
   `LOCALSTACK_AUTH_TOKEN=...` — see `.env.example` if you're cloning this.
 
+Running the LocalStack pipeline requires a valid LocalStack auth token in
+`.env`.
+
 ---
 
 ## Quick Start
@@ -201,9 +207,9 @@ make destroy
 
 The simulator (Week 2) generates data with **structured randomness**:
 
-The simulator runs **30 days × 10,000 subscribers** by default. This is
-deliberate:
-
+The default configuration simulates **10,000 subscribers over 30 days**.
+The small configuration simulates **500 subscribers over 5 days** for quick
+tests. Both use simulated data with injected fraud patterns.
 
 - Realistic distributions (log-normal amounts, Poisson event rates, weekday/
   hour seasonality).
@@ -260,9 +266,17 @@ bursts, high-value purchases on young or non-verified accounts without a
 completed payment in the prior seven days, and repeat purchases of one bundle
 within 24 hours.
 
-**Bundle abuse limitation:** bundle-usage source 6 is deferred, so the repeat
-purchase rule is only a proxy. The project does not claim to detect
-allowance over-consumption yet.
+**Bundle abuse limitation:** bundle-usage source 6 is deferred, so the
+repeat-purchase rule is only a bundle-abuse proxy. The project does not claim
+to detect allowance over-consumption yet.
+
+## Rules baseline
+
+Run `make eval-rules` to evaluate alerts in `fraud_alerts` against the
+simulator labels. The report is written to
+[`evaluation/out/rules_baseline.md`](evaluation/out/rules_baseline.md).
+Results come from simulated data with injected patterns, so they are
+optimistic and should not be treated as expected real-world performance.
 
 ## License
 

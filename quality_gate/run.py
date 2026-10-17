@@ -13,6 +13,7 @@ target `make quality`.
 from __future__ import annotations
 
 import argparse
+from datetime import date
 from pathlib import Path
 
 import boto3
@@ -51,6 +52,13 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Allow configured sources with no readable raw files",
     )
+    p.add_argument(
+        "--as-of",
+        type=date.fromisoformat,
+        default=None,
+        metavar="YYYY-MM-DD",
+        help="Reference date for freshness checks (defaults to today)",
+    )
     return p.parse_args()
 
 
@@ -87,6 +95,7 @@ def main() -> None:
             sources=sources,
             verbose=not args.quiet,
             allow_empty=args.allow_empty,
+            as_of=args.as_of,
         )
     except EmptySourceError as exc:
         raise SystemExit(str(exc)) from exc

@@ -81,8 +81,8 @@ def _aggregate(s3, bucket: str, source: str) -> pl.DataFrame:
         return pl.DataFrame(schema={"subscriber_id": pl.String, "event_date": pl.Date})
 
     keys = ["subscriber_id", "event_date"]
-    # Silver files are run-scoped. Re-running the quality gate can leave older
-    # copies in the same prefix, so collapse repeated source IDs before sums.
+    # Stable IDs remain a safety net for any legacy run-scoped files alongside
+    # the deterministic event-date files written by the current quality gate.
     id_field = {
         "activation": "event_id",
         "purchases": "purchase_id",

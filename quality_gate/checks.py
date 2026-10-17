@@ -239,8 +239,14 @@ def _check_range_revenue(row: dict[str, Any]) -> ValidationResult:
         )
 
     # Pydantic already enforces amount >= 0 — so refunds can't be negative
-    # in the current contract. That's a design decision we may revisit.
-    # For now, all we can check is that amount is finite.
+    # in the current contract, but top-ups must always be non-negative.
+    if ptype == "topup" and amt < 0:
+        return ValidationResult(
+            status="failed",
+            reason=f"negative amount for topup: {amount}",
+            check_name="range",
+            row=row,
+        )
     if amt != amt or amt in (float("inf"), float("-inf")):
         return ValidationResult(
             status="failed",

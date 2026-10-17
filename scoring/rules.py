@@ -75,6 +75,8 @@ def _alert(rule_id: str, subscriber_id: str, anchor: str, fraud_type: str,
 
 
 def generate_candidates(s3, bucket: str, profiles: dict[str, dict], rules_cfg: dict) -> list[dict]:
+    # _read_silver scans Parquet objects below the event-date partitions; the
+    # stable-ID dedupe below also tolerates leftover legacy gate-run objects.
     activation = _deduplicate(
         _read_silver(s3, bucket, SILVER_SOURCES["activation"]).to_dicts(), "event_id"
     )
